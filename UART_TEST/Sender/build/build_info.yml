@@ -1,0 +1,61 @@
+cmake:
+  application:
+    configuration-dir: '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender'
+    source-dir: '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender'
+  board:
+    name: 'rpi_pico2'
+    path:
+     - '/home/amine/zephyrproject/zephyr/boards/raspberrypi/rpi_pico2'
+    qualifiers: 'rp2350a/m33'
+    revision: ''
+  devicetree:
+    bindings-dirs:
+     - '/home/amine/zephyrproject/zephyr/dts/bindings'
+    files:
+     - '/home/amine/zephyrproject/zephyr/boards/raspberrypi/rpi_pico2/rpi_pico2_rp2350a_m33.dts'
+     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/rpi_pico2_rp2350a_m33.overlay'
+    include-dirs:
+     - '/home/amine/zephyrproject/modules/hal/ambiq/dts'
+     - '/home/amine/zephyrproject/modules/hal/atmel/include'
+     - '/home/amine/zephyrproject/modules/hal/bouffalolab/include'
+     - '/home/amine/zephyrproject/modules/hal/bouffalolab/include/zephyr'
+     - '/home/amine/zephyrproject/modules/hal/gigadevice/include'
+     - '/home/amine/zephyrproject/modules/hal/microchip/include'
+     - '/home/amine/zephyrproject/modules/hal/microchip/dts'
+     - '/home/amine/zephyrproject/modules/hal/nuvoton/dts'
+     - '/home/amine/zephyrproject/modules/hal/nxp/dts'
+     - '/home/amine/zephyrproject/modules/hal/stm32/dts'
+     - '/home/amine/zephyrproject/modules/hal/ti/dts'
+     - '/home/amine/zephyrproject/zephyr/include'
+     - '/home/amine/zephyrproject/zephyr/include/zephyr'
+     - '/home/amine/zephyrproject/zephyr/dts/common'
+     - '/home/amine/zephyrproject/zephyr/dts/vendor'
+     - '/home/amine/zephyrproject/zephyr/dts/rx'
+     - '/home/amine/zephyrproject/zephyr/dts/x86'
+     - '/home/amine/zephyrproject/zephyr/dts/xtensa'
+     - '/home/amine/zephyrproject/zephyr/dts/sparc'
+     - '/home/amine/zephyrproject/zephyr/dts/riscv'
+     - '/home/amine/zephyrproject/zephyr/dts/posix'
+     - '/home/amine/zephyrproject/zephyr/dts/arm64'
+     - '/home/amine/zephyrproject/zephyr/dts/arm'
+     - '/home/amine/zephyrproject/zephyr/dts/arc'
+     - '/home/amine/zephyrproject/zephyr/dts'
+    user-files:
+     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/rpi_pico2_rp2350a_m33.overlay'
+  kconfig:
+    files:
+     - '/home/amine/zephyrproject/zephyr/boards/raspberrypi/rpi_pico2/rpi_pico2_rp2350a_m33_defconfig'
+     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf'
+    user-files:
+     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf'
+  toolchain:
+    name: 'zephyr'
+    path: '/home/amine/zephyr-sdk-0.17.4'
+  zephyr:
+    version: '4.3.99'
+    zephyr-base: '/home/amine/zephyrproject/zephyr'
+version: '0.1.0'
+west:
+  command: '/home/amine/zephyrproject/.venv/bin/west build -p always -b rpi_pico2/rp2350a/m33 -d /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender'
+  topdir: '/home/amine/zephyrproject'
+  version: '1.5.0'
