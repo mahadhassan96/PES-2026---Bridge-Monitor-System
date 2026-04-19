@@ -1,28 +1,23 @@
 / {
-     aliases {
-             led0 = &myled0;
-             led2 = &myled2;
-             led3 = &myled3;
-             led4 = &myled4;
-             led5 = &myled5;
-     };
+    aliases {
+        status-led = &led0; // LED already defined by the board
+    };
 
-     leds {
-             compatible = "gpio-leds";
-             myled0: led_0 {
-                     gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
-             };
-             myled2: led_2 {
-                     gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
-             };
-             myled3: led_3 {
-                     gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
-             };
-             myled4: led_4 {
-                     gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
-             };
-             myled5: led_5 {
-                     gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
-             };
-     };
+    zephyr,user {
+        io-channels = <&adc 0>; // Use ADC Channel 0 (GP26)
+    };
+};
+
+&adc {
+    #address-cells = <1>;
+    #size-cells = <0>;
+    status = "okay";
+
+    channel@0 {
+        reg = <0>;
+        zephyr,gain = "ADC_GAIN_1";
+        zephyr,reference = "ADC_REF_INTERNAL";
+        zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+        zephyr,resolution = <12>; // RP2040 ADC is 12-bit
+    };
 };

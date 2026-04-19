@@ -14,10 +14,10 @@ set(OPENOCD "openocd")
 set(OPENOCD_DEFAULT_PATH "/usr/local/share/openocd/scripts")
 
 #define project name
-project(lab2_part1)
+project(sensor_node)
 
 # Add source files
-target_include_directories(app PRIVATE src/inc)
-FILE(GLOB SRC_FILES "src/*.c")
+target_include_directories(app PRIVATE src inc)
+FILE(GLOB SRC_FILES "src/*.c" "inc/*.h")
 target_sources(app PRIVATE src/main.c ${SRC_FILES})
 
