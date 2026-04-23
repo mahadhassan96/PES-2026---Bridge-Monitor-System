@@ -862,11 +862,28 @@ pico_serial0: &uart0 {};
 };
 # 20 "/home/amine/zephyrproject/zephyr/boards/raspberrypi/rpi_pico2/rpi_pico2_rp2350a_m33.dts" 2
 # 0 "<command-line>" 2
-# 1 "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/rpi_pico2_rp2350a_m33.overlay" 1
+# 1 "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/rpi_pico2_rp2350a_m33.overlay" 1
 / {
     chosen {
         zephyr,console = &cdc_acm_uart0;
         zephyr,shell-uart = &cdc_acm_uart0;
+    };
+
+
+    aliases {
+        btn = &button0;
+    };
+
+    buttons {
+        compatible = "gpio-keys";
+
+        button0: button_0 {
+            gpios = <&gpio0 20 ((1 << 0) | (1 << 4))>;
+
+
+
+            label = "User button";
+        };
     };
 };
 

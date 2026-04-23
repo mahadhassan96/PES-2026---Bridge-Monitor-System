@@ -1,12 +1,12 @@
 linker.cmd: \
  /home/amine/zephyrproject/zephyr/include/zephyr/arch/arm/cortex_m/scripts/linker.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/zephyr/autoconf.h \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/zephyr/autoconf.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/sections.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/section_tags.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/toolchain.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/toolchain/gcc.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/devicetree.h \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/zephyr/devicetree_generated.h \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/zephyr/devicetree_generated.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/irq_multilevel.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/sys/util.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/sys/util_macro.h \
@@ -37,7 +37,7 @@ linker.cmd: \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/devicetree_regions.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/linker-defs.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/toolchain/common.h \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/zephyr/offsets.h \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/zephyr/offsets.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/linker-tool.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/linker-tool-gcc.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/kernel/mm.h \
@@ -45,7 +45,7 @@ linker.cmd: \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/linker-devnull.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/rel-sections.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/llext-sections.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/snippets-rom-start.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/snippets-rom-start.ld \
  /home/amine/zephyrproject/zephyr/include/../arch/common/rom_start_address.ld \
  /home/amine/zephyrproject/zephyr/include/../arch/common/fill_with_zeros.ld \
  /home/amine/zephyrproject/zephyr/include/../arch/common/rom_start_offset.ld \
@@ -58,7 +58,7 @@ linker.cmd: \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/common-rom/common-rom-kernel-devices.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/iterable_sections.h \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/device-deps.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/device-api-sections.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/device-api-sections.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/common-rom/common-rom-ztest.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/common-rom/common-rom-init.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/common-rom/common-rom-net.ld \
@@ -67,26 +67,26 @@ linker.cmd: \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/common-rom/common-rom-debug.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/common-rom/common-rom-interrupt-controllers.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/common-rom/common-rom-misc.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/snippets-rom-sections.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/snippets-rom-sections.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/thread-local-storage.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/snippets-rodata.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/snippets-rodata.ld \
  /home/amine/zephyrproject/zephyr/include/../arch/arm/core/swi_tables.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/kobject-rom.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/cplusplus-rom.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/snippets-ram-sections.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/snippets-ram-sections.ld \
  /home/amine/zephyrproject/zephyr/include/../arch/common/ramfunc.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/snippets-ramfunc-section.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/snippets-rwdata.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/snippets-ramfunc-section.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/snippets-rwdata.ld \
  /home/amine/zephyrproject/zephyr/include/../modules/hal_rpi_pico/timecritical.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/common-ram.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/kobject-data.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/cplusplus-ram.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/snippets-data-sections.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/snippets-data-sections.ld \
  /home/amine/zephyrproject/zephyr/include/../subsys/usb/device_next/usbd_data.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/snippets-sections.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/snippets-sections.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/intlist.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/debug-sections.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/common-noinit.ld \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/zephyr/include/generated/snippets-noinit.ld \
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/zephyr/include/generated/snippets-noinit.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/kobject-priv-stacks.ld \
  /home/amine/zephyrproject/zephyr/include/zephyr/linker/ram-end.ld

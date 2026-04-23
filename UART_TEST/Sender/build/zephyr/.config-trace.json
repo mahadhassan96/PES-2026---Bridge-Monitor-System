@@ -6,7 +6,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       1028
     ]
   ],
@@ -17,7 +17,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       1133
     ]
   ],
@@ -28,7 +28,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       1318
     ]
   ],
@@ -39,8 +39,19 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       1403
+    ]
+  ],
+  [
+    "CONFIG_DT_HAS_GPIO_KEYS_ENABLED",
+    "n",
+    "bool",
+    "y",
+    "default",
+    [
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
+      3023
     ]
   ],
   [
@@ -50,7 +61,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       3028
     ]
   ],
@@ -61,7 +72,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       5483
     ]
   ],
@@ -72,7 +83,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9003
     ]
   ],
@@ -83,7 +94,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9013
     ]
   ],
@@ -94,7 +105,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9018
     ]
   ],
@@ -105,7 +116,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9023
     ]
   ],
@@ -116,7 +127,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9033
     ]
   ],
@@ -127,7 +138,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9038
     ]
   ],
@@ -138,7 +149,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9043
     ]
   ],
@@ -149,7 +160,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9048
     ]
   ],
@@ -160,7 +171,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9053
     ]
   ],
@@ -171,7 +182,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9058
     ]
   ],
@@ -182,7 +193,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9083
     ]
   ],
@@ -193,7 +204,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9093
     ]
   ],
@@ -204,7 +215,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9098
     ]
   ],
@@ -215,7 +226,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9103
     ]
   ],
@@ -226,7 +237,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9133
     ]
   ],
@@ -237,7 +248,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9138
     ]
   ],
@@ -248,7 +259,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9148
     ]
   ],
@@ -259,7 +270,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9153
     ]
   ],
@@ -270,7 +281,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       9158
     ]
   ],
@@ -281,7 +292,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       11508
     ]
   ],
@@ -292,7 +303,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       11583
     ]
   ],
@@ -303,7 +314,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.dts",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.dts",
       15033
     ]
   ],
@@ -1177,7 +1188,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       5
     ]
   ],
@@ -1188,7 +1199,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       11
     ]
   ],
@@ -1209,7 +1220,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       17
     ]
   ],
@@ -1228,7 +1239,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       23
     ]
   ],
@@ -1247,7 +1258,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       29
     ]
   ],
@@ -1276,7 +1287,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       35
     ]
   ],
@@ -1287,7 +1298,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       39
     ]
   ],
@@ -1298,7 +1309,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       44
     ]
   ],
@@ -1309,7 +1320,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       53
     ]
   ],
@@ -1320,7 +1331,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       57
     ]
   ],
@@ -1331,7 +1342,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       62
     ]
   ],
@@ -1342,7 +1353,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       68
     ]
   ],
@@ -1361,7 +1372,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       77
     ]
   ],
@@ -1372,7 +1383,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       83
     ]
   ],
@@ -1383,7 +1394,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       89
     ]
   ],
@@ -1402,7 +1413,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       98
     ]
   ],
@@ -1413,7 +1424,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       102
     ]
   ],
@@ -1424,7 +1435,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       107
     ]
   ],
@@ -1435,7 +1446,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       114
     ]
   ],
@@ -1446,7 +1457,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       119
     ]
   ],
@@ -1457,7 +1468,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       126
     ]
   ],
@@ -1468,7 +1479,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       129
     ]
   ],
@@ -1479,7 +1490,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       134
     ]
   ],
@@ -1490,7 +1501,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       141
     ]
   ],
@@ -1532,7 +1543,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       149
     ]
   ],
@@ -1543,7 +1554,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       155
     ]
   ],
@@ -1554,7 +1565,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       164
     ]
   ],
@@ -1565,7 +1576,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       173
     ]
   ],
@@ -1576,7 +1587,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       177
     ]
   ],
@@ -1587,7 +1598,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       185
     ]
   ],
@@ -1606,7 +1617,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       191
     ]
   ],
@@ -1617,7 +1628,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       195
     ]
   ],
@@ -1628,7 +1639,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       200
     ]
   ],
@@ -1639,7 +1650,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       204
     ]
   ],
@@ -1650,7 +1661,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       207
     ]
   ],
@@ -1669,7 +1680,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       212
     ]
   ],
@@ -1680,7 +1691,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       218
     ]
   ],
@@ -1691,7 +1702,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       222
     ]
   ],
@@ -1702,7 +1713,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       225
     ]
   ],
@@ -1713,7 +1724,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       230
     ]
   ],
@@ -1732,7 +1743,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       236
     ]
   ],
@@ -1743,7 +1754,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       242
     ]
   ],
@@ -1754,7 +1765,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       248
     ]
   ],
@@ -1773,7 +1784,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       254
     ]
   ],
@@ -1784,7 +1795,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       260
     ]
   ],
@@ -1811,7 +1822,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       264
     ]
   ],
@@ -1822,7 +1833,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       267
     ]
   ],
@@ -1833,7 +1844,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       272
     ]
   ],
@@ -1852,7 +1863,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       278
     ]
   ],
@@ -1871,7 +1882,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       285
     ]
   ],
@@ -1890,7 +1901,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       290
     ]
   ],
@@ -1909,7 +1920,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       296
     ]
   ],
@@ -1928,7 +1939,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       302
     ]
   ],
@@ -1939,7 +1950,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       308
     ]
   ],
@@ -1968,7 +1979,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       312
     ]
   ],
@@ -1979,7 +1990,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       317
     ]
   ],
@@ -1998,7 +2009,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       323
     ]
   ],
@@ -2009,7 +2020,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       329
     ]
   ],
@@ -2020,7 +2031,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       335
     ]
   ],
@@ -2039,7 +2050,7 @@
     "y",
     "default",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/Kconfig/Kconfig.modules",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/Kconfig/Kconfig.modules",
       339
     ]
   ],
@@ -4470,7 +4481,7 @@
     "y",
     "assign",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/prj.conf",
       5
     ]
   ],
@@ -5054,7 +5065,7 @@
     "y",
     "assign",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/prj.conf",
       4
     ]
   ],
@@ -6265,7 +6276,7 @@
     "y",
     "assign",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/prj.conf",
       7
     ]
   ],
@@ -6472,7 +6483,7 @@
     "y",
     "assign",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/prj.conf",
       8
     ]
   ],
@@ -6505,7 +6516,7 @@
     "USBD console sample",
     "assign",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/prj.conf",
       10
     ]
   ],
@@ -6527,7 +6538,7 @@
     "0x0004",
     "assign",
     [
-      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf",
+      "/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/prj.conf",
       9
     ]
   ],

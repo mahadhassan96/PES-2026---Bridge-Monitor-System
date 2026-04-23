@@ -31,4 +31,4 @@ empty_file.o: /home/amine/zephyrproject/zephyr/misc/empty_file.c \
  /home/amine/zephyrproject/zephyr/include/zephyr/dt-bindings/pinctrl/rpi-pico-pinctrl-common.h \
  /home/amine/zephyrproject/zephyr/boards/raspberrypi/rpi_pico2/../common/rpi_pico-pinctrl-common.dtsi \
  /home/amine/zephyrproject/zephyr/boards/raspberrypi/rpi_pico2/../common/rpi_pico-led.dtsi \
- /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/rpi_pico2_rp2350a_m33.overlay
+ /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/rpi_pico2_rp2350a_m33.overlay

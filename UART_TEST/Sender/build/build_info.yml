@@ -1,7 +1,7 @@
 cmake:
   application:
-    configuration-dir: '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender'
-    source-dir: '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender'
+    configuration-dir: '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender'
+    source-dir: '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender'
   board:
     name: 'rpi_pico2'
     path:
@@ -13,7 +13,7 @@ cmake:
      - '/home/amine/zephyrproject/zephyr/dts/bindings'
     files:
      - '/home/amine/zephyrproject/zephyr/boards/raspberrypi/rpi_pico2/rpi_pico2_rp2350a_m33.dts'
-     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/rpi_pico2_rp2350a_m33.overlay'
+     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/rpi_pico2_rp2350a_m33.overlay'
     include-dirs:
      - '/home/amine/zephyrproject/modules/hal/ambiq/dts'
      - '/home/amine/zephyrproject/modules/hal/atmel/include'
@@ -41,13 +41,13 @@ cmake:
      - '/home/amine/zephyrproject/zephyr/dts/arc'
      - '/home/amine/zephyrproject/zephyr/dts'
     user-files:
-     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/rpi_pico2_rp2350a_m33.overlay'
+     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/rpi_pico2_rp2350a_m33.overlay'
   kconfig:
     files:
      - '/home/amine/zephyrproject/zephyr/boards/raspberrypi/rpi_pico2/rpi_pico2_rp2350a_m33_defconfig'
-     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf'
+     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/prj.conf'
     user-files:
-     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/prj.conf'
+     - '/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/prj.conf'
   toolchain:
     name: 'zephyr'
     path: '/home/amine/zephyr-sdk-0.17.4'
@@ -56,6 +56,6 @@ cmake:
     zephyr-base: '/home/amine/zephyrproject/zephyr'
 version: '0.1.0'
 west:
-  command: '/home/amine/zephyrproject/.venv/bin/west build -p always -b rpi_pico2/rp2350a/m33 -d /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender'
+  command: '/home/amine/zephyrproject/.venv/bin/west build -p always -b rpi_pico2/rp2350a/m33 -d /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender'
   topdir: '/home/amine/zephyrproject'
   version: '1.5.0'

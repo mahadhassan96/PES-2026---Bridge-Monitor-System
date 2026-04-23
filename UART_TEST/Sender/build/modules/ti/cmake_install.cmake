@@ -39,9 +39,9 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/modules/ti/simplelink/cmake_install.cmake")
-  include("/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/modules/ti/simplelink_lpf3/cmake_install.cmake")
-  include("/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build/modules/ti/mspm0/cmake_install.cmake")
+  include("/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/modules/ti/simplelink/cmake_install.cmake")
+  include("/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/modules/ti/simplelink_lpf3/cmake_install.cmake")
+  include("/home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/UART_TEST/Sender/build/modules/ti/mspm0/cmake_install.cmake")
 
 endif()
 
