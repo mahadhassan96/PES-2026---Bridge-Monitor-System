@@ -8,13 +8,13 @@
 
 void main_task() 
 {
-  int32_t voltage_mv = 0; 
+  int32_t force = 0; 
 	config_adc();
     for(;;)
     {
 		
-		read_adc(&voltage_mv);
-    printk("Voltage [mV]: %d\n", voltage_mv);
+		get_force(&force);
+    printk("Voltage [mV]: %d\n", force);
 			
 		k_sleep(K_MSEC(1500));
     }
