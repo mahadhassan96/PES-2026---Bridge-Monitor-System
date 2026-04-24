@@ -50,6 +50,9 @@ int config_adc(){
 	return 0;
 }
 
+/*
+	Reads ADC Code, returns error status
+*/
 int read_adc(int32_t* adc){
     (void)adc_sequence_init_dt(&adc_channels[0], &sequence);
 	int err = adc_read_dt(&adc_channels[0], &sequence);
@@ -81,15 +84,7 @@ int get_voltage(int32_t* voltage){
 	return 0;
 }
 
-int get_force(int32_t* force){
-	int32_t voltage_mv = 0; 
-
-	int err = get_voltage_trig(&voltage_mv);
-	if(err < 0){
-		return err;
-	}	
-
-	uint32_t resistance = ((voltage_mv / SUPPLY_V) - 1) * RM;
+int find_fvr_index(int32_t resistance){
 	int max = 9;
 	int min = 0;
 	int counter = 0;
@@ -103,15 +98,41 @@ int get_force(int32_t* force){
 			min = mid + 1;
 		}
 		if((resistance == fvr[mid].resistance) || (counter >= 10)){
-			break;
+			return mid;
 		}
 		counter++;
 	}
-	if(abs(resistance - fvr[mid].resistance) >= abs(resistance - fvr[mid-1].resistance)){
-		*force = fvr[mid-1].force;
+	return mid;
+}
+
+int get_force(int32_t* force, int32_t voltage_mv){
+	uint32_t resistance = abs(((RM * voltage_mv) / SUPPLY_V) - RM); //((voltage / SUPPLY_V) - 1) * RM;
+	printk("Resistance: %d\n", resistance);
+	int index = find_fvr_index(resistance);
+	if(abs(resistance - fvr[index].resistance) >= abs(resistance - fvr[index-1].resistance)){
+		*force = fvr[index-1].force;
 		return 0;
 	}
-	*force = fvr[mid].force;
+	*force = fvr[index].force;
+	return 0;
+}
+
+int get_force_trig(int32_t* force){
+	int32_t voltage_mv = 0; 
+
+	int err = get_voltage_trig(&voltage_mv);
+	if(err < 0){
+		return err;
+	}	
+
+	uint32_t resistance = abs(((RM * voltage_mv) / SUPPLY_V) - RM); //((voltage / SUPPLY_V) - 1) * RM;
+	printk("Resistance: %d\n", resistance);
+	int index = find_fvr_index(resistance);
+	if(abs(resistance - fvr[index].resistance) >= abs(resistance - fvr[index-1].resistance)){
+		*force = fvr[index].force;
+		return 0;
+	}
+	*force = fvr[index].force;
 
 	return 0;
 }

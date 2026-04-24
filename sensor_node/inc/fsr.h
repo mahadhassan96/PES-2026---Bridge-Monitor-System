@@ -8,4 +8,6 @@ int get_voltage_trig(int32_t* voltage);
 
 int get_voltage(int32_t* voltage);
 
-int get_force(int32_t* force);
+int get_force_trig(int32_t* force);
+
+int get_force(int32_t* force, int32_t voltage_mv);
