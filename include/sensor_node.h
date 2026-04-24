@@ -1,7 +1,7 @@
 #ifndef SENSOR_NODE_H
 #define SENSOR_NODE_H
 
-#include "stdint.h"
+#include <stdbool.h>
 #include "readings.h"
 
 typedef enum

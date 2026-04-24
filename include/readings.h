@@ -2,11 +2,12 @@
 #define READINGS_H
 
 #include "stdint.h"
+#include "stdbool.h"
 
 typedef enum
 {
     REQUESTED,
-    ALERT
+    UNREQUESTED
 } reading_type_t;
 
 typedef struct 
