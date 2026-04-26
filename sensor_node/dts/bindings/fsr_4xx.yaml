@@ -1,0 +1,17 @@
+description: Interlink FSR 4xx Force Sensitive Resistor
+compatible: "fsr_4xx"
+
+# Include sensor-device to get standard sensor properties
+include: sensor-device.yaml
+
+properties:
+  # This tells Zephyr that this node points to an ADC channel
+  io-channels:
+    type: phandle-array
+    required: true
+    description: ADC channel to use
+
+  resolution:
+    type: int
+    required: true
+    description: ADC resolution (e.g., 12)

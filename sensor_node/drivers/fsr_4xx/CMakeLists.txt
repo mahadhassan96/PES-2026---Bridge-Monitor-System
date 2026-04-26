@@ -1,0 +1,3 @@
+zephyr_library()
+zephyr_library_sources(fsr_4xx.c)
+#zephyr_library_link_libraries(zephyr_interface)

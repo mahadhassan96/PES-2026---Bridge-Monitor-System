@@ -1,23 +1,13 @@
 / {
-    aliases {
-        status-led = &led0; // LED already defined by the board
-    };
-
     zephyr,user {
-        io-channels = <&adc 0>; // Use ADC Channel 0 (GP26)
+        /* This creates a handle for our code to find */
+        io-channels = <&adc 0>; 
     };
-};
 
-&adc {
-    #address-cells = <1>;
-    #size-cells = <0>;
-    status = "okay";
-
-    channel@0 {
-        reg = <0>;
-        zephyr,gain = "ADC_GAIN_1";
-        zephyr,reference = "ADC_REF_INTERNAL";
-        zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-        zephyr,resolution = <12>; // RP2040 ADC is 12-bit
+    fsr_sensor: fsr_4xx {
+        compatible = "fsr_4xx";
+        io-channels = <&adc 0>;
+        resolution = <12>;  /* RP2350 usually uses 12-bit ADC */
+        status = "okay";
     };
 };

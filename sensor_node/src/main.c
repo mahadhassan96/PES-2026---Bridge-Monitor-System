@@ -1,33 +1,32 @@
 #include <zephyr/kernel.h>
+#include <zephyr/device.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/drivers/gpio.h>
-#include "fsr.h"
+#include <zephyr/drivers/sensor.h> 
 
 #define DELAY_2_MS  100
 #define STACK_SIZE  500 
 
-void main_task() 
+#ifndef SENSOR_CHAN_FORCE
+#define SENSOR_CHAN_FORCE SENSOR_CHAN_PRIV_START
+#endif
+
+int main() 
 {
-  int32_t volt = 0; 
-  int32_t force = 0; 
-	config_adc();
-    for(;;)
-    {
-		
-		/*read_adc(&volt);
-    printk("ADC: %d\n", volt);
+  const struct device *const dev = DEVICE_DT_GET(DT_NODELABEL(fsr_sensor));
 
-    get_voltage(&volt);
-    printk("Voltage [mV]: %d\n\n", volt);
+  if(!device_is_ready(dev)) {
+    printk("Sensor device not ready\n");
+    return 0;
+  }
+  struct sensor_value force;
+  for(;;){
+    sensor_sample_fetch(dev);
+    sensor_channel_get(dev, SENSOR_CHAN_FORCE, &force);
 
-    get_force(&force, volt);
-    printk("Force [N]: %d\n\n", force);*/
+    printk("Force [g]: %d\n", force.val1);
+    k_sleep(K_MSEC(1500));
+  }
 
-    get_force_trig(&force);
-    printk("Force [N]: %d\n\n", force);
-			
-		k_sleep(K_MSEC(1500));
-    }
+  return 0;
 }
-
-K_THREAD_DEFINE(main_tsk, STACK_SIZE, main_task, NULL, NULL, NULL, -1, 0, 0);
