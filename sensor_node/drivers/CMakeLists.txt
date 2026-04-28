@@ -1,0 +1,1 @@
+add_subdirectory_ifdef(CONFIG_FSR_4XX fsr_4xx)

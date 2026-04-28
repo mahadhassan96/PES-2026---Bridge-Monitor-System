@@ -1,23 +1,19 @@
-# Find Zephyr. This also links to Zephyr's build system 
 cmake_minimum_required(VERSION 3.20.0)
 
-# set our board 
-set(BOARD rpi_pico2/rp2350a/m33)
+# 1. Bypass the Kconfig "Aborting" behavior
+set(KCONFIG_ERROR_ON_WARNING OFF CACHE BOOL "" FORCE)
 
-find_package(Zephyr)
+# Tell Zephyr this project itself is the module
+list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR})
 
-# This is only used by IntelliSense inside VS Code 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# 2. Load Zephyr
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(sensor_node)
 
-# For using west flash with picoprobe
-set(OPENOCD "openocd")
-set(OPENOCD_DEFAULT_PATH "/usr/local/share/openocd/scripts")
+# 3. MANUALLY add your drivers folder
+# This tells CMake to go into 'drivers/' and look for another CMakeLists.txt
+#add_subdirectory(drivers)
 
-#define project name
-project(lab2_part1)
-
-# Add source files
-target_include_directories(app PRIVATE src/inc)
-FILE(GLOB SRC_FILES "src/*.c")
-target_sources(app PRIVATE src/main.c ${SRC_FILES})
-
+# 4. Standard App Source Settings
+target_sources(app PRIVATE src/main.c)
+target_include_directories(app PRIVATE src inc)
