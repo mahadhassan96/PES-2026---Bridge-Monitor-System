@@ -22,8 +22,27 @@
         };
     };
 
+    leds {
+        compatible = "gpio-leds";
+        led0: led_0 {
+            gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
+            label = "EXT_LED0";
+        };
+        led1: led_1 {
+            gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
+            label = "EXT_LED1";
+        };
+        led2: led_2 {
+            gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+            label = "EXT_LED2";
+        };
+    };
+
     aliases {
         button0 = &button0;
         button1 = &button1;
+        led0 = &led0;
+        led1 = &led1;
+        led2 = &led2;
     };
 };

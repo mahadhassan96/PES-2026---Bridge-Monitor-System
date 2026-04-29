@@ -12,7 +12,7 @@
 
 #include "readings.h"
 
-#define WORK_INTERVAL_MS 5000
+#define WORK_INTERVAL_S 5
 
 #define STACK_SIZE 500
 #define QUEUE_SIZE 16
@@ -37,6 +37,11 @@ typedef enum
     ERROR_OCCURRED
 } base_station_event_t;
 
+typedef enum {
+    STATE_SIGNAL,
+    TIMER_SIGNAL
+} poll_signal_t;
+
 typedef struct 
 {
     sensor_reading_t sensor_readings;
@@ -47,8 +52,13 @@ typedef struct
 
 void init(base_station_t* bs);
 
-void turn_on_leds();
+void turn_on_leds(bool force, bool dist, bool accel);
 void turn_off_leds();
+
+void normal_handler(base_station_t *bs, bool state_change);
+void alert_handler(base_station_t *bs, bool state_change);
+void boot_handler(base_station_t *bs, bool state_change);
+void error_handler(base_station_t *bs, bool state_change);
 
 void print_data();
 void request_data();

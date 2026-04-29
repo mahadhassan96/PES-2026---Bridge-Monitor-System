@@ -12,9 +12,16 @@ base_station_t bs;
 #define BTN0_NODE DT_ALIAS(button0)
 #define BTN1_NODE DT_ALIAS(button1)
 
+#define FORCE_LED_NODE DT_ALIAS(led0)
+#define DIST_LED_NODE DT_ALIAS(led1)
+#define ACCEL_LED_NODE DT_ALIAS(led2)
+
 // Create specs for each node.
 static const struct gpio_dt_spec btn0_spec = GPIO_DT_SPEC_GET(BTN0_NODE, gpios);
 static const struct gpio_dt_spec btn1_spec = GPIO_DT_SPEC_GET(BTN1_NODE, gpios);
+static const struct gpio_dt_spec force_led_spec = GPIO_DT_SPEC_GET(FORCE_LED_NODE, gpios);
+static const struct gpio_dt_spec dist_led_spec = GPIO_DT_SPEC_GET(DIST_LED_NODE, gpios);
+static const struct gpio_dt_spec accel_led_spec = GPIO_DT_SPEC_GET(ACCEL_LED_NODE, gpios);
 
 // Create callback struct for button ISRs.
 static struct gpio_callback reset_btn_cb_data;
@@ -22,6 +29,8 @@ static struct gpio_callback logging_btn_cb_data;
 
 static struct k_poll_signal poll_signal;
 static struct k_timer request_timer;
+
+static struct k_poll_event events[1];
 
 void init_btn(const struct gpio_dt_spec *spec, gpio_callback_handler_t callback, struct gpio_callback *callback_data)
 {
@@ -38,12 +47,28 @@ void init_btn(const struct gpio_dt_spec *spec, gpio_callback_handler_t callback,
     gpio_add_callback_dt(spec, callback_data);
 }
 
+void init_led(const struct gpio_dt_spec *spec)
+{
+    if (!gpio_is_ready_dt(spec))
+	{
+		return;
+	}
+
+    // Configures LED pin as output.
+	int ret = gpio_pin_configure_dt(spec, GPIO_OUTPUT_INACTIVE);
+    if (ret < 0) {
+        return;
+    }
+}
+
 // Sets up the initial state and performs necessary setup for the base station.
 void init(base_station_t* bs)
 {
     // Initialize the base station state
     bs->curr_state = BOOT;
-    bs->logging = false;
+    if(bs->logging) {
+        printk("[DEBUG] Booting!\n");
+    }
 
     // Initialize sensors and perform handshake
     // init_sensors();
@@ -52,6 +77,18 @@ void init(base_station_t* bs)
     // Initialize buttons and their ISRs.
     init_btn(&btn0_spec, reset_btn_isr, &reset_btn_cb_data);
     init_btn(&btn1_spec, logging_btn_isr, &logging_btn_cb_data);
+
+    // Initialize LEDs.
+    init_led(&force_led_spec);
+    init_led(&dist_led_spec);
+    init_led(&accel_led_spec);
+
+    // Initialize the polling signal and event.
+    k_poll_signal_init(&poll_signal);
+    k_poll_event_init(&events[0], K_POLL_TYPE_SIGNAL, K_POLL_MODE_NOTIFY_ONLY, &poll_signal);
+
+    // Initialize the timer for periodic data requests.
+    k_timer_init(&request_timer, timer_handler, NULL);
 
     // Add boot complete event to the event queue.
     base_station_event_t evt = BOOT_COMPLETE;
@@ -74,59 +111,107 @@ void logging_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_
 
 void timer_handler(struct k_timer *t)
 {
-    // k_poll_signal_raise(&poll_signal, 1);
+    k_poll_signal_raise(&poll_signal, TIMER_SIGNAL);
+}
+
+void error_handler(base_station_t *bs, bool state_change)
+{
+    if(state_change) {
+        // Stop the periodic timer during error.
+        k_timer_stop(&request_timer);
+    }
+}
+
+void boot_handler(base_station_t *bs, bool state_change)
+{
+    if(state_change) {
+        // Stop the periodic timer during re-boot.
+        k_timer_stop(&request_timer);
+    }
+
+    // Re-boot the system.
+    init(bs);
+}
+
+void alert_handler(base_station_t *bs, bool state_change)
+{
+    normal_handler(bs, state_change);
+}
+
+void normal_handler(base_station_t *bs, bool state_change)
+{
+    // Start the timer interval.
+    if(state_change) {
+        k_timer_start(&request_timer, K_SECONDS(WORK_INTERVAL_S), K_SECONDS(WORK_INTERVAL_S));
+    }
+
+    turn_off_leds();
+    // Request data from sensors.
+    // request_data();
+}
+
+void turn_off_leds()
+{       
+    gpio_pin_set_dt(&force_led_spec, 0);
+    gpio_pin_set_dt(&dist_led_spec, 0);
+    gpio_pin_set_dt(&accel_led_spec, 0);
+}
+
+void turn_on_leds(bool force, bool dist, bool accel)
+{   
+    gpio_pin_set_dt(&force_led_spec, force);
+    gpio_pin_set_dt(&dist_led_spec, dist);
+    gpio_pin_set_dt(&accel_led_spec, accel);
 }
 
 void worker_task()
 {
+    bs.logging = false;
     init(&bs);
-    struct k_poll_event events[1];
 
-    // k_poll_signal_init(&poll_signal);
-    // k_poll_event_init(&events[0], K_POLL_TYPE_SIGNAL, K_POLL_MODE_NOTIFY_ONLY, &poll_signal);
-    k_timer_init(&request_timer, timer_handler, NULL);
-    k_timer_start(&request_timer, K_SECONDS(5), K_SECONDS(5));
     int signaled, result;
+    bool state_change = false;
+    
+    while (true) {
+        // Wait for a signal to perform work.
+        k_poll(events, 1, K_FOREVER);
 
-    // while (true) {
-    //     k_poll(events, 1, K_FOREVER);
+        if (events[0].state == K_POLL_STATE_SIGNALED) {
 
-    //     if (events[0].state == K_POLL_STATE_SIGNALED) {
+            if(bs.logging) {
+                printk("[DEBUG] Received work signal!\n");
+            }
 
-    //         printk("Doing work!\n");
+            k_poll_signal_check(&poll_signal, &signaled, &result);
             
-    //         k_poll_signal_check(&poll_signal, &signaled, &result);
-    //         k_poll_signal_reset(&poll_signal);
+            // Reset for the next signal.
+            k_poll_signal_reset(&poll_signal);
+            k_poll_signal_check(&poll_signal, &signaled, &result);
+            events[0].state = K_POLL_STATE_NOT_READY;
 
-    //         // if (result == 1) {
-    //         //     printk("DING!\n");
-    //         // } else {
-    //         //     printk("State updated!\n");
-    //         // }
+            state_change = (result == STATE_SIGNAL);
 
-    //         // switch (bs.curr_state)
-    //         // {
-    //         //     case ALERT:
-    //         //         /* code */
-    //         //         break;
+            switch (bs.curr_state)
+            {
+                case ALERT:
+                    alert_handler(&bs, state_change);
+                    break;
 
-    //         //     case BOOT:
-    //         //         printk("Booting!\n");
-    //         //         // Re-initialize the system on boot.
-    //         //         init(&bs);
-    //         //         break;
+                case BOOT:
+                    boot_handler(&bs, state_change);
+                    break;
 
-    //         //     case ERROR:
-    //         //         break;
+                case ERROR:
+                    error_handler(&bs, state_change);
+                    break;
                 
-    //         //     // Default to normal case.
-    //         //     default:
-    //         //         break;
-    //         // }
-    //     }
-
-    //     events[0].state = K_POLL_STATE_NOT_READY;
-    // }
+                // Default to normal case.
+                default:
+                    normal_handler(&bs, state_change);
+                    break;
+            }
+        }
+    }
 }
 
 base_station_event_t get_next_state(base_station_state_t curr_state, base_station_event_t ev)
@@ -177,7 +262,7 @@ void fsm_task()
 
             // Advance state based on the event.
             bs.curr_state = get_next_state(bs.curr_state, ev);
-            // k_poll_signal_raise(&poll_signal, 0);
+            k_poll_signal_raise(&poll_signal, STATE_SIGNAL);
             log_state(&bs);
         }
     }
