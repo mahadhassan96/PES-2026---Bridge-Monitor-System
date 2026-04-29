@@ -1,5 +1,0 @@
-west:
-  command: /Users/joshdean/zephyrproject/.venv/bin/west build -b rpi_pico2/rp2350a/m33
-    -p
-  topdir: /Users/joshdean/zephyrproject
-  version: 1.5.0
