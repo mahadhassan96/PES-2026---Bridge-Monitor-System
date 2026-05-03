@@ -5,6 +5,7 @@
 #include "stdbool.h" 
 #include <zephyr/kernel.h>
 #include "include/I2C_interface.h"
+#include "include/thresholds.h"
 
 #define VL53L1X_ADDR 0x29
 #define READ_TIMEOUT_MS 500
@@ -55,7 +56,10 @@ typedef enum
     SD_CONFIG__INITIAL_PHASE_SD1                                               = 0x007B,
     SYSTEM__INTERRUPT_CLEAR                                                    = 0x0086,
     SYSTEM__MODE_START                                                         = 0x0087,
-    SYSTEM__INTERMEASUREMENT_PERIOD                                            = 0x006C
+    SYSTEM__INTERMEASUREMENT_PERIOD                                            = 0x006C,
+    SYSTEM__INTERRUPT_CONFIG_GPIO                                              = 0x0046,
+    SYSTEM__THRESH_HIGH                                                        = 0x0072,
+    SYSTEM__THRESH_LOW                                                         = 0x0074
 } regAddr;
 
 typedef enum {
@@ -137,8 +141,10 @@ bool tof_update_dss(void);
 
 bool tof_start_continuous(uint32_t period_ms);
 
-uint16_t tof_read(bool blocking);
+uint16_t tof_read(bool blocking, Thresholds *thresholds);
 
-bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms);
+bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms, Thresholds thresholds);
+
+bool tof_set_distance_threshold_interrupt(uint16_t threshold_mm);
 
 #endif 

@@ -10,4 +10,8 @@
         resolution = <12>;  /* RP2350 usually uses 12-bit ADC */
         status = "okay";
     };
+
+    tof_intrpt: tof_intrpt{
+        gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+    };
 };

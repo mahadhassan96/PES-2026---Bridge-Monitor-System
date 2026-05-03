@@ -307,7 +307,6 @@ void tof_get_Reading_data(void)
 bool tof_update_dss(void)
 {
     uint16_t spad_count = results.dss_actual_effective_spads_sd0;
-
     if (spad_count != 0) {
         uint32_t total_rate_per_spad = (uint32_t)results.peak_signal_count_rate_crosstalk_corrected_mcps_sd0 + results.ambient_count_rate_mcps_sd0;
 
@@ -328,14 +327,10 @@ bool tof_update_dss(void)
         }
     }
 
-    return sensor_write_reg_u16(
-        VL53L1X_ADDR,
-        DSS_CONFIG__MANUAL_EFFECTIVE_SPADS_SELECT,
-        0x8000
-    ) == I2C_OK;
+    return sensor_write_reg_u16(VL53L1X_ADDR, DSS_CONFIG__MANUAL_EFFECTIVE_SPADS_SELECT, 0x8000) == I2C_OK;
 }
 
-uint16_t tof_read(bool blocking)
+uint16_t tof_read(bool blocking, const Thresholds thresholds)
 {
     if (blocking) {
         setTimeout(READ_TIMEOUT_MS);
@@ -351,22 +346,16 @@ uint16_t tof_read(bool blocking)
         }
     }
 
-    if (!tof_read_results()) {
-        return 0;
-    }
-
-    if (!tof_update_dss()) {
-        return 0;
-    }
+    if (!tof_read_results()) { return 0; }
+    if (!tof_update_dss()) { return 0; }
 
     tof_get_Reading_data();
-
     sensor_write_reg_u8(VL53L1X_ADDR, SYSTEM__INTERRUPT_CLEAR, 0x01);
 
     return Reading_data.range_mm;
 }
 
-bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms)
+bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms, const Thresholds thresholds)
 {
     uint32_t sum = 0;
     uint16_t valid_samples = 0;
@@ -383,37 +372,47 @@ bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms)
 
     while (!isTimeoutExpired())
     {
-        uint16_t distance = tof_read(true); 
-
-        if (!did_timeout && distance > 0 &&
-            Reading_data.range_status == VL53L1_RANGESTATUS_RANGE_VALID)
+        uint16_t distance = tof_read(true, thresholds); 
+        if (!did_timeout && distance > 0 && Reading_data.range_status == VL53L1_RANGESTATUS_RANGE_VALID)
         {
             sum += distance;
             valid_samples++;
         }
     }
 
-    if (valid_samples == 0)
-    {
-        return false;
-    }
-
+    if (valid_samples == 0){ return false; }
     *avg_mm = sum / valid_samples;
+
     return true;
 }
 
 bool tof_start_continuous(uint32_t period_ms)
 {
-    // inter-measurement period
-    if (sensor_write_reg_u32(VL53L1X_ADDR, SYSTEM__INTERMEASUREMENT_PERIOD, period_ms * osc_calibrate_val) != I2C_OK)
-    {
+    if (sensor_write_reg_u32(VL53L1X_ADDR, SYSTEM__INTERMEASUREMENT_PERIOD, period_ms * osc_calibrate_val) != I2C_OK){
         return false;
     }
 
-    // clear interrupt
-    sensor_write_reg_u8(VL53L1X_ADDR, SYSTEM__INTERRUPT_CLEAR, 0x01);
+    if (sensor_write_reg_u8(VL53L1X_ADDR, SYSTEM__INTERRUPT_CLEAR, 0x01) != I2C_OK ){
+        return false;
+    }
+  
+    return sensor_write_reg_u8(VL53L1X_ADDR, SYSTEM__MODE_START, 0x40) == I2C_OK;  
+}
 
-    // start ranging
-    return sensor_write_reg_u8(VL53L1X_ADDR, SYSTEM__MODE_START, 0x40) == I2C_OK;
+bool tof_set_distance_threshold_interrupt(uint16_t threshold_mm)
+{
+    if (sensor_write_reg_u16(VL53L1X_ADDR, SYSTEM__THRESH_LOW, threshold_mm) != I2C_OK) {
+        return false;
+    }
+
+    if (sensor_write_reg_u16(VL53L1X_ADDR, SYSTEM__THRESH_HIGH, 0xFFFF) != I2C_OK) {
+        return false;
+    }
+
+    if (sensor_write_reg_u8(VL53L1X_ADDR, SYSTEM__INTERRUPT_CONFIG_GPIO, 0x01) != I2C_OK) {
+        return false;
+    }
+
+    return true;
 }
 
