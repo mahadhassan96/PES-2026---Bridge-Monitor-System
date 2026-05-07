@@ -24,7 +24,6 @@ Once the following requirements have been met, build the base station with:
 ## Copy .uf2 file to Raspberry Pi Pico
 Ensure the Pico is in bootloader mode and identify where the device mounts on your computer. On Mac this is at or around `Volumes/RP2350`. Copy the fresh build .uf2 over to the Pico with:
 ```bash
-    cd /path/to/base_station/
     cp build/zephyr/zephyr.uf2 /Volumes/RP2350
 ```
 
@@ -39,4 +38,5 @@ Identify the device in `/dev/tty/` and connect to the Pico via `screen` or a sim
 As of now, the following pins are assigned on the base station Pico:
 | Pin       | Type     | Usage                  |
 |-----------|----------|------------------------|
-| GP20      | btn      | Reset button           |
+| GP20      | btn      | Reset                  |
+| GP21      | btn      | Toggle logging         |

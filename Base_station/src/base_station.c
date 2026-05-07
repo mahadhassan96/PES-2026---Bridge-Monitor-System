@@ -114,20 +114,25 @@ void timer_handler(struct k_timer *t)
     k_poll_signal_raise(&poll_signal, TIMER_SIGNAL);
 }
 
-void error_handler(base_station_t *bs, bool state_change)
+static inline void toggle_timer(bool state_change, bool start)
 {
-    if(state_change) {
-        // Stop the periodic timer during error.
+    if (!state_change) { return; }
+    if (start) {
+        k_timer_start(&request_timer, K_SECONDS(WORK_INTERVAL_S), K_SECONDS(WORK_INTERVAL_S));
+    } else {
         k_timer_stop(&request_timer);
     }
 }
 
+void error_handler(base_station_t *bs, bool state_change)
+{
+    // Stop the periodic timer during error.
+    toggle_timer(state_change, false);
+}
+
 void boot_handler(base_station_t *bs, bool state_change)
 {
-    if(state_change) {
-        // Stop the periodic timer during re-boot.
-        k_timer_stop(&request_timer);
-    }
+    toggle_timer(state_change, false);
 
     // Re-boot the system.
     init(bs);
@@ -136,14 +141,14 @@ void boot_handler(base_station_t *bs, bool state_change)
 void alert_handler(base_station_t *bs, bool state_change)
 {
     normal_handler(bs, state_change);
+
+    // TODO: Turn on LEDs based on which anomalies are detected.
 }
 
 void normal_handler(base_station_t *bs, bool state_change)
 {
     // Start the timer interval.
-    if(state_change) {
-        k_timer_start(&request_timer, K_SECONDS(WORK_INTERVAL_S), K_SECONDS(WORK_INTERVAL_S));
-    }
+    toggle_timer(state_change, true);
 
     turn_off_leds();
     // Request data from sensors.
