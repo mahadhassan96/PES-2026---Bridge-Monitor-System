@@ -1,0 +1,32 @@
+#ifndef COMS_H
+#define COMS_H
+
+#include <stdint.h>
+#include <stddef.h>
+#include <zephyr/drivers/uart.h>
+
+typedef enum
+{
+    SYN,
+    ACK,
+    // RESTART,
+    REQUEST,
+    RESPONSE,
+    EMERGENCY,
+    EMERGENCY_ACK,
+} packet_type_t;
+
+typedef struct
+{
+    uint8_t data_len; // the payload length in bytes
+    packet_type_t type;
+    uint8_t *data;
+} packet_t;
+
+packet_t *build_packet(packet_type_t type, uint8_t *data, uint8_t data_len);
+void destroy_packet(packet_t *packet);
+
+void send_packet(const struct device *uart_dev, packet_t *packet);
+packet_t *receive_packet(const struct device *uart_dev, uint8_t payload_len);
+
+#endif /* COMS_H */
