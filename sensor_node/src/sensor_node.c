@@ -1,12 +1,11 @@
 #include "../../include/sensor_node.h"
 
-K_MUTEX_DEFINE(uart_tx_mutex);
-K_SEM_DEFINE(poll_sem, 0, 1);
-
-
 #define UART_NODE DT_NODELABEL(uart0)
 
 static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
+
+// Create a packet queue.
+K_MSGQ_DEFINE(packet_queue, sizeof(packet_t), QUEUE_SIZE, __alignof__(packet_t));
 
 void process_packet(packet_t *packet)
 {
@@ -40,9 +39,7 @@ void send_response(packet_type_t type, uint8_t *data, uint8_t data_len)
     packet_t *response_packet = build_packet(type, data, data_len);
     if (response_packet) {
         // Send the response packet over UART.
-        k_mutex_lock(&uart_tx_mutex, K_FOREVER);
         send_packet(uart_dev, response_packet);
-        k_mutex_unlock(&uart_tx_mutex);
 
         // Free the allocated memory for the response packet.
         destroy_packet(response_packet);
@@ -51,15 +48,17 @@ void send_response(packet_type_t type, uint8_t *data, uint8_t data_len)
 
 void worker_task()
 {
-    // while (true) {
-    //     // Wait for the poll semaphore to be given.
-    //     k_sem_take(&poll_sem, K_FOREVER);
+    packet_t packet;
+    while (true) {
+        // Check for packets in the packet queue and handle them.
+        if (k_msgq_get(&packet_queue, &packet, K_FOREVER) == 0) {
+            // Process the received packet.
+            process_packet(packet);
 
-    //     // Perform periodic tasks, such as checking sensor states or sending updates.
-    //     // For example, you could read sensor data and send it to the base station at regular intervals.
-    //     sensor_reading_t reading = read_sensor_data();
-    //     send_response(RESPONSE, (uint8_t *)&reading, sizeof(reading));
-    // }
+            // Free the allocated memory for the packet.
+            destroy_packet(packet);
+        }
+    }
 }
 
 void uart_read_task()
@@ -72,12 +71,10 @@ void uart_read_task()
         {
             // Read the rest of the packet (type and data).
             packet_t *packet = receive_packet(uart_dev, payload_len);
-            if (packet) {
-                // Process the received packet.
-                process_packet(packet);
-
-                // Free the allocated memory for the packet.
-                destroy_packet(packet);
+            if (packet)
+            {
+                // Pass the received packet to the worker task.
+                k_msgq_put(&packet_queue, packet, K_FOREVER);
             }
         }
         // Small sleep to prevent busy waiting.

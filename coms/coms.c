@@ -1,5 +1,8 @@
 #include "../../include/coms.h"
 
+// Mutex for UART channel access.
+K_MUTEX_DEFINE(uart_tx_mutex);
+
 /*
  * Build a new packet with the specified type and payload.
  * The caller is responsible for freeing the memory allocated for the packet.
@@ -13,7 +16,8 @@
 packet_t *build_packet(packet_type_t type, uint8_t *data, uint8_t data_len)
 {
     packet_t *packet = malloc(sizeof(packet_t));
-    if (packet == NULL) {
+    if (packet == NULL) 
+    {
         return NULL;
     }
     packet->type = type;
@@ -29,8 +33,7 @@ packet_t *build_packet(packet_type_t type, uint8_t *data, uint8_t data_len)
 /*
  * Destroy a packet and free all allocated memory.
  *
- * Args:
- *   @param packet pointer to the packet to destroy
+ * @param packet pointer to the packet to destroy
  */
 void destroy_packet(packet_t *packet)
 {
@@ -46,10 +49,9 @@ void destroy_packet(packet_t *packet)
 /*
  * Send bytes over the specified UART device.
  *
- * Args:
- *   @param uart_dev pointer to the UART device to send bytes through
- *   @param data pointer to the data to send
- *   @param len the number of bytes to send
+ * @param uart_dev pointer to the UART device to send bytes through
+ * @param data pointer to the data to send
+ * @param len the number of bytes to send
  */
 static void uart_send_bytes(const struct device *uart_dev, uint8_t *data, uint32_t len)
 {
@@ -60,13 +62,15 @@ static void uart_send_bytes(const struct device *uart_dev, uint8_t *data, uint32
 
 /*
  * Send a packet over the specified UART device.
+ * Locks the UART channel mutex to ensure exclusive access during transmission.
  *
- * Args:
- *   @param uart_dev pointer to the UART device to send the packet through
- *   @param packet pointer to the packet to send
+ * @param uart_dev pointer to the UART device to send the packet through
+ * @param packet pointer to the packet to send
  */
 void send_packet(const struct device *uart_dev, packet_t *packet)
 {
+    k_mutex_lock(&uart_tx_mutex, K_FOREVER);
+
     // Send the data length first.
     uart_send_bytes(uart_dev, (uint8_t *)&packet->data_len, sizeof(uint8_t));
 
@@ -75,15 +79,16 @@ void send_packet(const struct device *uart_dev, packet_t *packet)
 
     // Finally send the data.
     uart_send_bytes(uart_dev, packet->data, packet->data_len);
+
+    k_mutex_unlock(&uart_tx_mutex, K_FOREVER);
 }
 
 /*
  * Receive bytes from the specified UART device.
  *
- * Args:
- *   @param uart_dev pointer to the UART device to receive bytes from
- *   @param buffer pointer to the buffer to store the received bytes
- *   @param len the number of bytes to receive
+ * @param uart_dev pointer to the UART device to receive bytes from
+ * @param buffer pointer to the buffer to store the received bytes
+ * @param len the number of bytes to receive
  */
 static void uart_receive_bytes(const struct device *uart_dev, uint8_t *buffer, uint32_t len)
 {
@@ -96,12 +101,10 @@ static void uart_receive_bytes(const struct device *uart_dev, uint8_t *buffer, u
  * Reads packet type and payload. Assumes payload_len has already been read
  * from the UART stream.
  *
- * Args:
- *   @param uart_dev pointer to the UART device to receive the packet from
- *   @param data_len the length of the data payload in bytes
+ * @param uart_dev pointer to the UART device to receive the packet from
+ * @param data_len the length of the data payload in bytes
  *
- * Returns:
- *   pointer to the received packet (caller is responsible for freeing memory)
+ * @returns pointer to the received packet (caller is responsible for freeing memory)
 */
 packet_t *receive_packet(const struct device *uart_dev, uint8_t data_len)
 {
