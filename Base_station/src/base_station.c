@@ -16,12 +16,16 @@ base_station_t bs;
 #define DIST_LED_NODE DT_ALIAS(led1)
 #define ACCEL_LED_NODE DT_ALIAS(led2)
 
+#define UART_NODE DT_NODELABEL(uart0)
+
 // Create specs for each node.
 static const struct gpio_dt_spec btn0_spec = GPIO_DT_SPEC_GET(BTN0_NODE, gpios);
 static const struct gpio_dt_spec btn1_spec = GPIO_DT_SPEC_GET(BTN1_NODE, gpios);
 static const struct gpio_dt_spec force_led_spec = GPIO_DT_SPEC_GET(FORCE_LED_NODE, gpios);
 static const struct gpio_dt_spec dist_led_spec = GPIO_DT_SPEC_GET(DIST_LED_NODE, gpios);
 static const struct gpio_dt_spec accel_led_spec = GPIO_DT_SPEC_GET(ACCEL_LED_NODE, gpios);
+
+static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
 
 // Create callback struct for button ISRs.
 static struct gpio_callback reset_btn_cb_data;
@@ -82,6 +86,11 @@ void init(base_station_t* bs)
     init_led(&force_led_spec);
     init_led(&dist_led_spec);
     init_led(&accel_led_spec);
+
+    // Initialize UART device.
+    if (!device_is_ready(uart_dev)) {
+        return -1;
+    }
 
     // Initialize the polling signal and event.
     k_poll_signal_init(&poll_signal);
@@ -145,6 +154,20 @@ void alert_handler(base_station_t *bs, bool state_change)
     // TODO: Turn on LEDs based on which anomalies are detected.
 }
 
+void request_data()
+{
+    // Build a request packet (empty payload for now).
+    packet_t *packet = build_packet(REQUEST, NULL, 0);
+    if (packet)
+    {
+        if (bs.logging) {
+            printk("[DEBUG] Sending data request packet!\n");
+        }
+        send_packet(uart_dev, packet);
+        destroy_packet(packet);
+    }
+}
+
 void normal_handler(base_station_t *bs, bool state_change)
 {
     // Start the timer interval.
@@ -152,7 +175,7 @@ void normal_handler(base_station_t *bs, bool state_change)
 
     turn_off_leds();
     // Request data from sensors.
-    // request_data();
+    request_data();
 }
 
 void turn_off_leds()
@@ -247,6 +270,34 @@ base_station_event_t get_next_state(base_station_state_t curr_state, base_statio
     return curr_state;
 }
 
+void uart_read_task()
+{
+    uint8_t payload_len;
+    while (true)
+    {
+        // Read packets from the UART channel and handle them.
+        if (uart_poll_in(uart_dev, &payload_len) == 0)
+        {
+            // If logging is enabled, print the received payload length.
+            if (bs.logging) {
+                printk("[DEBUG] Received packet with payload length: %d\n", payload_len);
+            }
+
+            // Read the rest of the packet (type and data).
+            packet_t *packet = receive_packet(uart_dev, payload_len);
+            if (packet) {
+                // Process the received packet.
+                // process_packet(packet);
+
+                // Free the allocated memory for the packet.
+                destroy_packet(packet);
+            }
+        }
+        // Small sleep to prevent busy waiting.
+        k_yield();
+    }
+}
+
 // Periodically checks the event queue and updates the base station state accordingly. 
 void fsm_task()
 {
@@ -329,3 +380,4 @@ void log_state(base_station_t* bs)
 
 K_THREAD_DEFINE(fsm_tid, STACK_SIZE, fsm_task, NULL, NULL, NULL, UPDATE_PRIO, 0, 0);
 K_THREAD_DEFINE(worker_tid, STACK_SIZE, worker_task, NULL, NULL, NULL, WORKER_PRIO, 0, 0);
+K_THREAD_DEFINE(uart_read_tid, STACK_SIZE, uart_read_task, NULL, NULL, NULL, READ_PRIO, 0, 0);

@@ -2,7 +2,17 @@
 #define SENSOR_NODE_H
 
 #include <stdbool.h>
+
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/uart.h>
+
 #include "readings.h"
+#include "coms.h"
+
+#define READ_PRIO -1
+#define WORKER_PRIO 1
 
 typedef enum
 {
@@ -22,5 +32,15 @@ typedef struct
 
 void init(sensor_node_t* sn);
 void update(sensor_node_t* sn);
+
+void process_packet(packet_t *packet);
+
+sensor_reading_t read_sensor_data();
+
+void uart_read_task();
+void worker_task();
+
+void send_response(packet_type_t type, uint8_t *data, uint8_t data_len);
+
 
 #endif /* SENSOR_NODE_H */

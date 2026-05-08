@@ -4,6 +4,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/uart.h>
 
 #include <stdio.h>
 #include <stdint.h>
@@ -11,11 +12,13 @@
 #include <stdbool.h>
 
 #include "readings.h"
+#include "coms.h"
 
 #define WORK_INTERVAL_S 5
 
 #define STACK_SIZE 500
 #define QUEUE_SIZE 16
+#define READ_PRIO -2
 #define UPDATE_PRIO -1
 #define WORKER_PRIO 1
 
@@ -77,6 +80,10 @@ void init_btn(const struct gpio_dt_spec *spec, gpio_callback_handler_t callback,
 void timer_handler(struct k_timer *t);
 
 base_station_event_t get_next_state(base_station_state_t curr_state, base_station_event_t ev);
+
+void fsm_task();
+void worker_task();
+void uart_read_task();
 
 void log_event(base_station_t* bs, base_station_event_t ev);
 void log_state(base_station_t* bs);
