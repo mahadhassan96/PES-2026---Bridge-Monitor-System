@@ -74,23 +74,33 @@ void init(base_station_t* bs)
         printk("[DEBUG] Booting!\n");
     }
 
+    if(!bs->hw_init)
+    {
+        // Initialize UART device.
+        if (!device_is_ready(uart_dev))
+        {
+            printk("[ERROR] UART device is not ready!\n");
+            // Add error event to the event queue.
+            base_station_event_t evt = ERROR_OCCURRED;
+            k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+            return;
+        }
+
+        // Initialize buttons and their ISRs.
+        init_btn(&btn0_spec, reset_btn_isr, &reset_btn_cb_data);
+        init_btn(&btn1_spec, logging_btn_isr, &logging_btn_cb_data);
+
+        // Initialize LEDs.
+        init_led(&force_led_spec);
+        init_led(&dist_led_spec);
+        init_led(&accel_led_spec);
+    }
+
+    bs->hw_init = true;
+
     // Initialize sensors and perform handshake
     // init_sensors();
     // sensor_handshake();
-
-    // Initialize buttons and their ISRs.
-    init_btn(&btn0_spec, reset_btn_isr, &reset_btn_cb_data);
-    init_btn(&btn1_spec, logging_btn_isr, &logging_btn_cb_data);
-
-    // Initialize LEDs.
-    init_led(&force_led_spec);
-    init_led(&dist_led_spec);
-    init_led(&accel_led_spec);
-
-    // Initialize UART device.
-    // if (!device_is_ready(uart_dev)) {
-    //     return -1;
-    // }
 
     // Initialize the polling signal and event.
     k_poll_signal_init(&poll_signal);
@@ -195,6 +205,7 @@ void turn_on_leds(bool force, bool dist, bool accel)
 void worker_task()
 {
     bs.logging = true;
+    bs.hw_init = false;
     init(&bs);
 
     int signaled, result;
@@ -210,11 +221,10 @@ void worker_task()
                 printk("[DEBUG] Received work signal!\n");
             }
 
+            // Check result & reset for the next signal.
             k_poll_signal_check(&poll_signal, &signaled, &result);
-            
-            // Reset for the next signal.
             k_poll_signal_reset(&poll_signal);
-            k_poll_signal_check(&poll_signal, &signaled, &result);
+
             events[0].state = K_POLL_STATE_NOT_READY;
 
             state_change = (result == STATE_SIGNAL);

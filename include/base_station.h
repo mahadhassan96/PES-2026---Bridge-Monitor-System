@@ -18,7 +18,7 @@
 
 #define STACK_SIZE 500
 #define QUEUE_SIZE 16
-#define READ_PRIO -2
+#define READ_PRIO 2
 #define UPDATE_PRIO -1
 #define WORKER_PRIO 1
 
@@ -51,6 +51,7 @@ typedef struct
     sensor_states_t sensor_states;
     base_station_state_t curr_state;
     bool logging;
+    bool hw_init;
 } base_station_t;
 
 void init(base_station_t* bs);

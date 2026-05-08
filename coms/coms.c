@@ -24,8 +24,23 @@ packet_t *build_packet(packet_type_t type, uint8_t *data, uint8_t data_len)
     packet->data_len = data_len;
 
     // Allocate memory for the data and copy the data.
-    packet->data = malloc(data_len);
-    memcpy(packet->data, data, data_len);
+    packet->data = NULL;
+
+    if (data_len > 0) {
+        if (data == NULL)
+        {
+            free(packet);
+            return NULL;
+        }
+
+        packet->data = malloc(data_len);
+        if (packet->data == NULL)
+        {
+            free(packet);
+            return NULL;
+        }
+        memcpy(packet->data, data, data_len);
+    }
 
     return packet;
 }
@@ -72,13 +87,16 @@ void send_packet(const struct device *uart_dev, packet_t *packet)
     k_mutex_lock(&uart_tx_mutex, K_FOREVER);
 
     // Send the data length first.
-    uart_send_bytes(uart_dev, (uint8_t *)&packet->data_len, sizeof(uint8_t));
+    uart_send_bytes(uart_dev, (uint8_t *)&packet->data_len, 1);
 
     // Then send the packet type.
-    uart_send_bytes(uart_dev, (uint8_t *)&packet->type, sizeof(packet_type_t));
+    uart_send_bytes(uart_dev, (uint8_t *)&packet->type, 1);
 
-    // Finally send the data.
-    uart_send_bytes(uart_dev, packet->data, packet->data_len);
+    // Finally send the data (if there is data).
+    if (packet->data_len > 0)
+    {
+        uart_send_bytes(uart_dev, packet->data, packet->data_len);
+    }
 
     k_mutex_unlock(&uart_tx_mutex);
 }
@@ -94,7 +112,10 @@ static void uart_receive_bytes(const struct device *uart_dev, uint8_t *buffer, u
 {
     for (uint32_t i = 0; i < len; i++) 
     {
-        while (uart_poll_in(uart_dev, &buffer[i]) != 0) {}
+        while (uart_poll_in(uart_dev, &buffer[i]) != 0)
+        {
+            k_sleep(K_MSEC(1));
+        }
     }
 }
 
@@ -110,21 +131,25 @@ static void uart_receive_bytes(const struct device *uart_dev, uint8_t *buffer, u
 packet_t *receive_packet(const struct device *uart_dev, uint8_t data_len)
 {
     packet_t *packet = malloc(sizeof(packet_t));
-    if (packet == NULL) {
+    if (packet == NULL)
+    {
         return NULL;
     }
 
     // Always start by receiving the packet type.
-    uart_receive_bytes(uart_dev, (uint8_t *)&packet->type, sizeof(packet_type_t));
+    uart_receive_bytes(uart_dev, (uint8_t *)&packet->type, 1);
 
     // Receive the data based on the provided data length.
-    packet->data = malloc(data_len);
-    if (packet->data == NULL) {
-        free(packet);
-        return NULL;
-    }
+    packet->data = NULL;
+    if (data_len > 0) {
+        packet->data = malloc(data_len);
+        if (packet->data == NULL) {
+            free(packet);
+            return NULL;
+        }
 
-    uart_receive_bytes(uart_dev, packet->data, data_len);
+        uart_receive_bytes(uart_dev, packet->data, data_len);
+    }
     packet->data_len = data_len;
     return packet;
 }
