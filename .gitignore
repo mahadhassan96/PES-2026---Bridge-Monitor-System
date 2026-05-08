@@ -1,0 +1,4 @@
+
+# Zephyr / CMake build output
+sensor_node/build/
+**/build/

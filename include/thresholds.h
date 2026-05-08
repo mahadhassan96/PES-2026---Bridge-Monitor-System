@@ -1,6 +1,7 @@
 #ifndef THRESHOLDS_H
 #define THRESHOLDS_H
-#include <cstdint>
+
+#include <stdint.h>
 
 typedef struct{
     const uint16_t min_distance_mm;
@@ -8,5 +9,6 @@ typedef struct{
     const uint16_t max_pressure_weight_N;
 } Thresholds;
 
+extern const Thresholds thresholds;
 
 #endif // THRESHOLDS_H

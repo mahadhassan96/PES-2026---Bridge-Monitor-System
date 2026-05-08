@@ -1,17 +1,23 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
 / {
     zephyr,user {
-        /* This creates a handle for our code to find */
-        io-channels = <&adc 0>; 
+        io-channels = <&adc 0>;
     };
 
     fsr_sensor: fsr_4xx {
         compatible = "fsr_4xx";
         io-channels = <&adc 0>;
-        resolution = <12>;  /* RP2350 usually uses 12-bit ADC */
+        resolution = <12>;
         status = "okay";
     };
 
-    tof_intrpt: tof_intrpt{
-        gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+    gpio_keys {
+        compatible = "gpio-keys";
+
+        tof_intrpt: tof_intrpt {
+            gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+            label = "TOF interrupt";
+        };
     };
 };

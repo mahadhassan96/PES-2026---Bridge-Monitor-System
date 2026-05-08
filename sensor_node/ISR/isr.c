@@ -1,8 +1,9 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
-#include "include/isr.h"
-#include "include/tof.h"
+#include "isr.h"
+#include "tof.h"
 #include <errno.h>
+#include "thresholds.h"
 
 #define TOF_INT_NODE DT_NODELABEL(tof_intrpt)
 static const struct gpio_dt_spec tof_intrpt = GPIO_DT_SPEC_GET(TOF_INT_NODE, gpios);
@@ -15,9 +16,9 @@ static void tof_gpio_isr(const struct device *dev, struct gpio_callback *cb, uin
 
 static void tof_work_handler(struct k_work *work)
 {
-    uint16_t distance = tof_read(false);
+    uint16_t distance = tof_read();
     if (Reading_data.range_status == VL53L1_RANGESTATUS_RANGE_VALID) {
-        printk("Detected: %u mm\n", distance);
+        printk("interrupt mode detected: %u mm\n", distance);
     }
 }
 

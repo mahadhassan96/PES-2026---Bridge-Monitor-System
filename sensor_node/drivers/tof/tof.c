@@ -1,13 +1,21 @@
-#include "include/tof.h"
+#include "tof.h"
+
+uint32_t timeout_value = 0;
+bool did_timeout = false;
+MeasurementData Reading_data = {0};
+k_timepoint_t timeout_deadline;
+uint16_t fast_osc_frequency = 0;
+uint16_t osc_calibrate_val = 0;
+ResultBuffer results = {0};
 
 bool tof_init(bool io_2v8)
 {
 
     if(sensor_write_reg_u8(VL53L1X_ADDR, SOFT_RESET, 0x00) == I2C_OK)
     {
-       k_usleep(100); // Sleep for 100ms after reset
+       k_usleep(100); 
        sensor_write_reg_u8(VL53L1X_ADDR, SOFT_RESET, 0x01); 
-       k_delay(1); // Sleep for 100ms after reset
+       k_usleep(100); 
     }
 
     setTimeout(READ_TIMEOUT_MS);
@@ -17,7 +25,7 @@ bool tof_init(bool io_2v8)
     {
         if (isTimeoutExpired())
         {
-            /// Handle timeout with handshake 
+            /// Note: we can Handle timeout with handshake later.
             return false;
         }
         
@@ -73,7 +81,6 @@ bool tof_init(bool io_2v8)
 
 bool setDistanceMode(DistanceMode mode)
 {
-    uint8_t timing_budget;
     switch (mode)
     {
         case SHORT_MODE:
@@ -125,7 +132,6 @@ bool setMeasurementTimingBudget(uint32_t budget_us)
     uint8_t vcsel_period;
     sensor_read_reg_u8(VL53L1X_ADDR, RANGE_CONFIG__VCSEL_PERIOD_A, &vcsel_period);
     uint32_t macro_period_us = calcMacroPeriod(vcsel_period);
-    uint32_t phasecal_timeout_mclks = timeoutMicrosecondsToMclks(1000, macro_period_us);
 
     sensor_write_reg_u16(VL53L1X_ADDR, MM_CONFIG__TIMEOUT_MACROP_A, encodeTimeout(timeoutMicrosecondsToMclks(1, macro_period_us)));
     sensor_write_reg_u16(VL53L1X_ADDR, RANGE_CONFIG__TIMEOUT_MACROP_A, encodeTimeout(timeoutMicrosecondsToMclks(final_budget, macro_period_us)));
@@ -198,16 +204,6 @@ uint16_t encodeTimeout(uint32_t timeout_mclks)
         return (ms_byte << 8) | (ls_byte & 0xFF);
     }
     else { return 0; }
-}
-
-bool tof_data_ready(void)
-{
-    uint8_t status = 0;
-    if (sensor_read_reg_u8(VL53L1X_ADDR, GPIO__TIO_HV_STATUS, &status) != I2C_OK) {
-        return false;
-    }
-
-    return (status & 0x01) == 0;
 }
 
 bool tof_read_results(void)
@@ -330,22 +326,8 @@ bool tof_update_dss(void)
     return sensor_write_reg_u16(VL53L1X_ADDR, DSS_CONFIG__MANUAL_EFFECTIVE_SPADS_SELECT, 0x8000) == I2C_OK;
 }
 
-uint16_t tof_read(bool blocking, const Thresholds thresholds)
+uint16_t tof_read()
 {
-    if (blocking) {
-        setTimeout(READ_TIMEOUT_MS);
-        startTimeout();
-
-        while (!tof_data_ready()) {
-            if (isTimeoutExpired()) {
-                did_timeout = true;
-                return 0;
-            }
-
-            k_sleep(K_MSEC(1));
-        }
-    }
-
     if (!tof_read_results()) { return 0; }
     if (!tof_update_dss()) { return 0; }
 
@@ -355,7 +337,7 @@ uint16_t tof_read(bool blocking, const Thresholds thresholds)
     return Reading_data.range_mm;
 }
 
-bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms, const Thresholds thresholds)
+bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms)
 {
     uint32_t sum = 0;
     uint16_t valid_samples = 0;
@@ -372,7 +354,7 @@ bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms, cons
 
     while (!isTimeoutExpired())
     {
-        uint16_t distance = tof_read(true, thresholds); 
+        uint16_t distance = tof_read(); 
         if (!did_timeout && distance > 0 && Reading_data.range_status == VL53L1_RANGESTATUS_RANGE_VALID)
         {
             sum += distance;
@@ -401,18 +383,35 @@ bool tof_start_continuous(uint32_t period_ms)
 
 bool tof_set_distance_threshold_interrupt(uint16_t threshold_mm)
 {
-    if (sensor_write_reg_u16(VL53L1X_ADDR, SYSTEM__THRESH_LOW, threshold_mm) != I2C_OK) {
+    i2c_status ret;
+
+    ret = sensor_write_reg_u16(VL53L1X_ADDR, SYSTEM__THRESH_LOW, threshold_mm);
+    printk("Write THRESH_LOW ret=%d value=%d\n", ret, threshold_mm);
+    if (ret != I2C_OK) {
         return false;
     }
 
-    if (sensor_write_reg_u16(VL53L1X_ADDR, SYSTEM__THRESH_HIGH, 0xFFFF) != I2C_OK) {
+    ret = sensor_write_reg_u16(VL53L1X_ADDR, SYSTEM__THRESH_HIGH, 0xFFFF);
+    printk("Write THRESH_HIGH ret=%d value=0x%04X\n", ret, 0xFFFF);
+    if (ret != I2C_OK) {
         return false;
     }
 
-    if (sensor_write_reg_u8(VL53L1X_ADDR, SYSTEM__INTERRUPT_CONFIG_GPIO, 0x01) != I2C_OK) {
+    ret = sensor_write_reg_u8(VL53L1X_ADDR, SYSTEM__INTERRUPT_CONFIG_GPIO, 0x04);
+    printk("Write INTERRUPT_CONFIG_GPIO ret=%d value=0x%02X\n", ret, 0x04);
+    if (ret != I2C_OK) {
         return false;
     }
 
+    ret = sensor_write_reg_u8(VL53L1X_ADDR, SYSTEM__INTERRUPT_CLEAR, 0x01);
+    printk("Write INTERRUPT_CLEAR ret=%d value=0x%02X\n", ret, 0x01);
+    if (ret != I2C_OK) {
+        return false;
+    }
+
+    printk("Distance threshold interrupt enabled\n");
     return true;
 }
+
+void setTimeout(uint16_t timeout) { timeout_value = timeout; }
 

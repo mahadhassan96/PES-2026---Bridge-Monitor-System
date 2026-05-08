@@ -4,11 +4,11 @@
 #include "stdint.h"
 #include "stdbool.h" 
 #include <zephyr/kernel.h>
-#include "include/I2C_interface.h"
-#include "include/thresholds.h"
+#include "I2C_interface.h"
+#include "thresholds.h"
 
 #define VL53L1X_ADDR 0x29
-#define READ_TIMEOUT_MS 500
+#define READ_TIMEOUT_MS 2000
 
 typedef enum
 {
@@ -56,6 +56,7 @@ typedef enum
     SD_CONFIG__INITIAL_PHASE_SD1                                               = 0x007B,
     SYSTEM__INTERRUPT_CLEAR                                                    = 0x0086,
     SYSTEM__MODE_START                                                         = 0x0087,
+    RESULT__RANGE_STATUS                                                       = 0x0089,
     SYSTEM__INTERMEASUREMENT_PERIOD                                            = 0x006C,
     SYSTEM__INTERRUPT_CONFIG_GPIO                                              = 0x0046,
     SYSTEM__THRESH_HIGH                                                        = 0x0072,
@@ -102,6 +103,7 @@ typedef struct
     float ambient_count_rate;
 } MeasurementData;
 
+extern ResultBuffer results;
 extern uint32_t timeout_value;
 extern bool did_timeout;
 extern MeasurementData Reading_data;
@@ -119,7 +121,9 @@ void setROISize(uint8_t width, uint8_t height);
 
 void startTimeout();
 
-void setTimeout(uint16_t timeout) { timeout_value = timeout; }
+void setTimeout(uint16_t timeout);
+
+bool isTimeoutExpired(void);
 
 bool setMeasurementTimingBudget(uint32_t budget_us);
 
@@ -129,11 +133,7 @@ uint32_t timeoutMicrosecondsToMclks(uint32_t timeout_us, uint32_t macro_period_u
 
 uint16_t encodeTimeout(uint32_t timeout_mclks);
 
-bool tof_data_ready(void);
-
 bool tof_read_results(void);
-
-static float count_rate_fixed_to_float(uint16_t count_rate_fixed);
 
 void tof_get_Reading_data(void);
 
@@ -141,9 +141,9 @@ bool tof_update_dss(void);
 
 bool tof_start_continuous(uint32_t period_ms);
 
-uint16_t tof_read(bool blocking, Thresholds *thresholds);
+uint16_t tof_read();
 
-bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms, Thresholds thresholds);
+bool avgSampleReading(uint16_t *avg_mm, uint16_t samples_window_timeout_ms);
 
 bool tof_set_distance_threshold_interrupt(uint16_t threshold_mm);
 
