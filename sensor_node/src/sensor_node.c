@@ -7,6 +7,16 @@ static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
 // Create a packet queue.
 K_MSGQ_DEFINE(packet_queue, sizeof(packet_t), QUEUE_SIZE, __alignof__(packet_t));
 
+sensor_node_t sn;
+
+void init(sensor_node_t* sn)
+{
+    // Initialize UART device.
+    if (!device_is_ready(uart_dev)) {
+        return -1;
+    }
+}
+
 void process_packet(packet_t *packet)
 {
     // Process the received packet based on its type.
@@ -48,6 +58,7 @@ void send_response(packet_type_t type, uint8_t *data, uint8_t data_len)
 
 void worker_task()
 {
+    init(&sn);
     packet_t packet;
     while (true) {
         // Check for packets in the packet queue and handle them.

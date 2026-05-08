@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <zephyr/kernel.h>
 #include <zephyr/drivers/uart.h>
 
 typedef enum

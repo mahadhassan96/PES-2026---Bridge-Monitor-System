@@ -1,4 +1,4 @@
-#include "../../include/coms.h"
+#include "../include/coms.h"
 
 // Mutex for UART channel access.
 K_MUTEX_DEFINE(uart_tx_mutex);
@@ -80,7 +80,7 @@ void send_packet(const struct device *uart_dev, packet_t *packet)
     // Finally send the data.
     uart_send_bytes(uart_dev, packet->data, packet->data_len);
 
-    k_mutex_unlock(&uart_tx_mutex, K_FOREVER);
+    k_mutex_unlock(&uart_tx_mutex);
 }
 
 /*
@@ -92,8 +92,9 @@ void send_packet(const struct device *uart_dev, packet_t *packet)
  */
 static void uart_receive_bytes(const struct device *uart_dev, uint8_t *buffer, uint32_t len)
 {
-    for (uint32_t i = 0; i < len; i++) {
-        buffer[i] = uart_poll_in(uart_dev);
+    for (uint32_t i = 0; i < len; i++) 
+    {
+        while (uart_poll_in(uart_dev, &buffer[i]) != 0) {}
     }
 }
 

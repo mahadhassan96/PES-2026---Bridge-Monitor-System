@@ -19,5 +19,5 @@ project(lab2_part1)
 # Add source files
 target_include_directories(app PRIVATE src/inc)
 FILE(GLOB SRC_FILES "src/*.c")
-target_sources(app PRIVATE src/main.c ${SRC_FILES})
+target_sources(app PRIVATE ${SRC_FILES})
 

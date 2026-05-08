@@ -88,9 +88,9 @@ void init(base_station_t* bs)
     init_led(&accel_led_spec);
 
     // Initialize UART device.
-    if (!device_is_ready(uart_dev)) {
-        return -1;
-    }
+    // if (!device_is_ready(uart_dev)) {
+    //     return -1;
+    // }
 
     // Initialize the polling signal and event.
     k_poll_signal_init(&poll_signal);
@@ -194,7 +194,7 @@ void turn_on_leds(bool force, bool dist, bool accel)
 
 void worker_task()
 {
-    bs.logging = false;
+    bs.logging = true;
     init(&bs);
 
     int signaled, result;
