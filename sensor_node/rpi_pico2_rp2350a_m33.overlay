@@ -1,3 +1,13 @@
+&i2c1 {
+        status = "okay";
+        adxl_313: adxl_313@1d {
+            compatible = "adxl_313"; /* adxl_313 uses the adxl_313 driver */
+            reg = <0x1d>;
+            int1-gpios = <&gpio0 15 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+            status = "okay";
+        };
+    };
+    
 / {
     zephyr,user {
         /* This creates a handle for our code to find */
@@ -9,5 +19,16 @@
         io-channels = <&adc 0>;
         resolution = <12>;  /* RP2350 usually uses 12-bit ADC */
         status = "okay";
+    };
+
+    aliases {
+        led2 = &myled2;
+    };
+
+    leds {
+        compatible = "gpio-leds";
+        myled2: led_2 {
+                gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+        };
     };
 };

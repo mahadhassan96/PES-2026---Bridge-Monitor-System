@@ -1,35 +1,58 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
-
-#define DELAY_2_MS    100
-#define DELAY_3_MS    200
-#define DELAY_4_MS    300
-#define DELAY_5_MS    500
+#include <zephyr/drivers/sensor.h> 
 
 #define STACK_SIZE  500 
 
 #define LED2_NODE   DT_ALIAS(led2) 
-#define LED3_NODE   DT_ALIAS(led3) 
-#define LED4_NODE   DT_ALIAS(led4) 
-#define LED5_NODE   DT_ALIAS(led5) 
-
+const struct gpio_dt_spec int_pin = GPIO_DT_SPEC_GET(DT_NODELABEL(adxl_313), int1_gpios);
 struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(LED2_NODE, gpios); 
-struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(LED3_NODE, gpios); 
-struct gpio_dt_spec led4 = GPIO_DT_SPEC_GET(LED4_NODE, gpios); 
-struct gpio_dt_spec led5 = GPIO_DT_SPEC_GET(LED5_NODE, gpios); 
+
+const struct device *const dev = DEVICE_DT_GET(DT_NODELABEL(adxl_313));
+
+void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
+{
+    struct sensor_value accel[3];
+
+    // 1. Fetch the data that caused the trigger
+    sensor_sample_fetch(dev);
+
+    // 2. Get the XYZ values
+    sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, accel);
+
+    // 3. Print the results
+    printk("Motion Detected! X: %d.%06d, Y: %d.%06d, Z: %d.%06d\n",
+           accel[0].val1, accel[0].val2,
+           accel[1].val1, accel[1].val2,
+           accel[2].val1, accel[2].val2);
+}
 
 void task(struct gpio_dt_spec* led, int delay) 
 {
+    if(!device_is_ready(dev)) {
+        printk("Sensor device not ready\n");
+    }
+    else{
+        printk("Sensor Init complete\n");
+    }
     gpio_pin_configure_dt(led, GPIO_OUTPUT_ACTIVE); 
+    //struct sensor_value accel[3];
+    struct sensor_trigger trig = {
+        .type = SENSOR_TRIG_DELTA,    // "Delta" is often used for activity/motion
+        .chan = SENSOR_CHAN_ACCEL_XYZ,
+    };
+
+    int ret = sensor_trigger_set(dev, &trig, motion_handler);
+    if (ret != 0) {
+        printk("Failed to set trigger: %d\n", ret);
+    }
 
     for(;;)
     {
-        gpio_pin_toggle_dt(led); 
-        k_msleep(delay); 
+        int val = gpio_pin_get_dt(&int_pin);
+        printk("Pin state: %d\n", val);
+        k_msleep(1000);
     }
 }
 
-K_THREAD_DEFINE(blink2, STACK_SIZE, task, &led2, DELAY_2_MS, NULL, 5, 0, 0);
-K_THREAD_DEFINE(blink3, STACK_SIZE, task, &led3, DELAY_3_MS, NULL, 6, 0, 0);
-K_THREAD_DEFINE(blink4, STACK_SIZE, task, &led4, DELAY_4_MS, NULL, 7, 0, 0);
-K_THREAD_DEFINE(blink5, STACK_SIZE, task, &led5, DELAY_5_MS, NULL, 8, 0, 0);
+K_THREAD_DEFINE(blink2, STACK_SIZE, task, &led2, 2000, NULL, 5, 0, 0);
