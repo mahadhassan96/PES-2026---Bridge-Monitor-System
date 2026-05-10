@@ -23,6 +23,7 @@ packet_t *build_packet(packet_type_t type, uint8_t *data, uint8_t data_len)
     packet->type = type;
     packet->data_len = data_len;
 
+
     // Allocate memory for the data and copy the data.
     packet->data = NULL;
 
@@ -70,6 +71,7 @@ void destroy_packet(packet_t *packet)
  */
 static void uart_send_bytes(const struct device *uart_dev, uint8_t *data, uint32_t len)
 {
+
     for (uint32_t i = 0; i < len; i++) {
         uart_poll_out(uart_dev, data[i]);
     }
@@ -85,6 +87,9 @@ static void uart_send_bytes(const struct device *uart_dev, uint8_t *data, uint32
 void send_packet(const struct device *uart_dev, packet_t *packet)
 {
     k_mutex_lock(&uart_tx_mutex, K_FOREVER);
+    
+    // Send packet start byte.
+    uart_poll_out(uart_dev, SYNC_BYTE);
 
     // Send the data length first.
     uart_send_bytes(uart_dev, (uint8_t *)&packet->data_len, 1);
