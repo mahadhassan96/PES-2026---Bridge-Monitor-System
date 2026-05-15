@@ -14,13 +14,10 @@ void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
 {
     struct sensor_value accel[3];
 
-    // 1. Fetch the data that caused the trigger
     sensor_sample_fetch(dev);
 
-    // 2. Get the XYZ values
     sensor_channel_get(dev, SENSOR_CHAN_ACCEL_XYZ, accel);
 
-    // 3. Print the results
     printk("Motion Detected! X: %d.%06d, Y: %d.%06d, Z: %d.%06d\n",
            accel[0].val1, accel[0].val2,
            accel[1].val1, accel[1].val2,

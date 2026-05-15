@@ -34,7 +34,6 @@ struct adxl_313_data {
     
 };
 
-// 1. Define the config struct
 struct adxl_313_config {
     struct i2c_dt_spec i2c;
     struct gpio_dt_spec int_gpio;
@@ -51,19 +50,15 @@ static int adxl313_trigger_set(const struct device *dev,
         return -EIO;
     }
     
-    // 1. Verify the trigger type (we'll use DELTA for Activity)
-    if (trig->type != SENSOR_TRIG_DELTA && trig->type != SENSOR_TRIG_DATA_READY) {
+     if (trig->type != SENSOR_TRIG_DELTA && trig->type != SENSOR_TRIG_DATA_READY) {
         return -ENOTSUP;
     }
 
-    // 2. Disable the interrupt while we swap handlers to prevent a race condition
-    gpio_pin_interrupt_configure_dt(&config->int_gpio, GPIO_INT_DISABLE);
+   gpio_pin_interrupt_configure_dt(&config->int_gpio, GPIO_INT_DISABLE);
 
-    // 3. Store the application's handler and trigger info
-    data->data_ready_handler = handler;
+     data->data_ready_handler = handler;
     data->data_ready_trig = trig;
 
-    // 4. Re-enable the interrupt (Rising edge)
     if (handler != NULL) {
         gpio_pin_interrupt_configure_dt(&config->int_gpio, GPIO_INT_EDGE_TO_ACTIVE);
     }
@@ -79,7 +74,6 @@ static void adxl_313_work_handler(struct k_work *work) {
         return;
     }
 
-    // Only call the handler if the Activity bit (0x10) is actually set
     if ((status & 0x10) && data->data_ready_handler) {
         data->data_ready_handler(data->dev, data->data_ready_trig);
     }
@@ -89,7 +83,7 @@ static void adxl_313_gpio_callback(const struct device *port,
                                   struct gpio_callback *cb, uint32_t pins) {
     printk("GPIO CALLBACK FIRED\n");
     struct adxl_313_data *data = CONTAINER_OF(cb, struct adxl_313_data, gpio_cb);
-    k_work_submit(&data->work); // Wake up the thread to handle data
+    k_work_submit(&data->work); 
 }
 
 static int adxl_313_sample_fetch(const struct device *dev, enum sensor_channel chan){
@@ -118,8 +112,6 @@ static int adxl_313_channel_get(const struct device *dev, enum sensor_channel ch
         sensor_value_from_double(val, (double)data->z * SCALE_FACTOR);
         break;
     case SENSOR_CHAN_ACCEL_XYZ:
-        // This is how you "return" three values!
-        // The user must provide a pointer to an array of 3 sensor_values
         sensor_value_from_double(&val[0], (double)data->x * SCALE_FACTOR);
         sensor_value_from_double(&val[1], (double)data->y * SCALE_FACTOR);
         sensor_value_from_double(&val[2], (double)data->z * SCALE_FACTOR);
@@ -131,7 +123,7 @@ static int adxl_313_channel_get(const struct device *dev, enum sensor_channel ch
 }
 
 static const struct sensor_driver_api adxl_313_api = {
-    .sample_fetch = adxl_313_sample_fetch, // Add your function names here later
+    .sample_fetch = adxl_313_sample_fetch,
     .channel_get = adxl_313_channel_get,
     .trigger_set = adxl313_trigger_set
 };
@@ -150,12 +142,9 @@ static int adxl_313_init(const struct device *dev){
     }
 
     gpio_pin_configure_dt(&config->int_gpio, GPIO_INPUT);
-
-    // 3. Set up the software callback
     gpio_init_callback(&data->gpio_cb, adxl_313_gpio_callback, BIT(config->int_gpio.pin));
     gpio_add_callback(config->int_gpio.port, &data->gpio_cb);
     
-    // 4. Initialize the Work Queue (to keep I2C out of the ISR)
     k_work_init(&data->work, adxl_313_work_handler);
 
     if(sensor_read_reg(ADDRESS, DEVID_0, dev_id, 2) != I2C_OK){
@@ -163,9 +152,8 @@ static int adxl_313_init(const struct device *dev){
     }
 
     if(dev_id[0] != 0xAD || dev_id[1] != 0x1D){    return I2C_ERROR_BUS;}
-
+ 
     uint8_t data_format = 0xB;
-    //uint8_t reset = 0x52;
     uint8_t power_ctl = 0x08;
     uint8_t int_enable = 0x10;
     uint8_t thresh_act = 0x50;
@@ -187,14 +175,13 @@ static int adxl_313_init(const struct device *dev){
     k_msleep(20);
 
     sensor_read_reg(ADDRESS, INT_ENABLE, &status, 1);
-    printk("int enable: %d\n", status);
+    //printk("int enable: %d\n", status);
     sensor_read_reg(ADDRESS, POWER_CTL, &status, 1);
-    printk("POWER CTL: %d\n", status);
+    //printk("POWER CTL: %d\n", status);
     sensor_read_reg(ADDRESS, INT_SOURCE, &status, 1);
 
     k_msleep(100);
 
-    // FINALLY, enable the Pico interrupt now that the sensor is ready and low
     gpio_pin_interrupt_configure_dt(&config->int_gpio, GPIO_INT_EDGE_TO_ACTIVE);
     return 0;
 }
