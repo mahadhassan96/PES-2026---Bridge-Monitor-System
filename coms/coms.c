@@ -92,18 +92,15 @@ void send_packet(const struct device *uart_dev, packet_t *packet)
 
     // Send packet start byte.
     uint8_t sync = SYNC_BYTE;
-    printk("[TX] SYNC: 0x%02X\n", sync);
     uart_send_bytes(uart_dev, &sync, 1);
     k_sleep(K_MSEC(1));
 
-    // Send the data length first.
-    printk("[TX] LENGTH: 0x%02X (%d)\n", packet->data_len, packet->data_len);
-    uart_send_bytes(uart_dev, (uint8_t *)&packet->data_len, 1);
+    // Send the packet type.
+    uart_send_bytes(uart_dev, (uint8_t *)&packet->type, 1);
     k_sleep(K_MSEC(1));
 
-    // Then send the packet type.
-    printk("[TX] TYPE: 0x%02X (%d)\n", packet->type, packet->type);
-    uart_send_bytes(uart_dev, (uint8_t *)&packet->type, 1);
+    // then Send the data length
+    uart_send_bytes(uart_dev, (uint8_t *)&packet->data_len, 1);
     k_sleep(K_MSEC(1));
 
     // Finally send the data (if there is data).
@@ -172,4 +169,55 @@ packet_t *receive_packet(const struct device *uart_dev, uint8_t data_len)
     }
     packet->data_len = data_len;
     return packet;
+}
+
+
+void print_packet(const char *tag, packet_t *packet)
+{
+    static const char *packet_type_names[] =
+    {
+        [SYN]           = "SYN",
+        [ACK]           = "ACK",
+        [REQUEST]       = "REQUEST",
+        [RESPONSE]      = "RESPONSE",
+        [EMERGENCY]     = "EMERGENCY",
+        [EMERGENCY_ACK] = "EMERGENCY_ACK"
+    };
+
+    if (packet == NULL)
+    {
+        printk("\n[%s] ERROR: NULL packet\n", tag);
+        return;
+    }
+
+    const char *type_str =
+        (packet->type < ARRAY_SIZE(packet_type_names) && packet_type_names[packet->type])
+        ? packet_type_names[packet->type]
+        : "UNKNOWN";
+
+    printk(
+        "\n================ %s PACKET ================\n"
+        "TYPE   : %s (%u / 0x%02X)\n"
+        "LENGTH : %u\n"
+        "PAYLOAD: ",
+        tag,
+        type_str,
+        packet->type,
+        packet->type,
+        packet->data_len
+    );
+
+    if (packet->data_len == 0 || packet->data == NULL)
+    {
+        printk("<EMPTY>");
+    }
+    else
+    {
+        for (int i = 0; i < packet->data_len; i++)
+        {
+            printk("%02X ", packet->data[i]);
+        }
+    }
+
+    printk("\n===========================================\n");
 }

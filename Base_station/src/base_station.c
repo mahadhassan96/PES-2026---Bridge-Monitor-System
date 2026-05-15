@@ -164,22 +164,27 @@ void alert_handler(base_station_t *bs, bool state_change)
     // TODO: Turn on LEDs based on which anomalies are detected.
 }
 
+// ============================ base_station.c ============================
+
 void request_data()
 {
-    // Build a request packet (empty payload for now).
     packet_t *packet = build_packet(REQUEST, NULL, 0);
+
     if (packet)
     {
-        if (bs.logging) {
-            printk("[DEBUG] Sending data request packet!\n");
+        if (bs.logging)
+        {
+            print_packet("BASE STATION - request_data", packet);
         }
+
         send_packet(uart_dev, packet);
         destroy_packet(packet);
     }
-    else{
-            printk("[DEBUG] NOTHING IS BEING SENT!\n");
-
+    else
+    {
+        printk("[DEBUG] NOTHING IS BEING SENT!\n");
     }
+
     k_sleep(K_MSEC(1000));
 }
 
@@ -287,32 +292,80 @@ base_station_event_t get_next_state(base_station_state_t curr_state, base_statio
 
 void uart_read_task()
 {
-    uint8_t payload_len;
+    uint8_t received_byte;
+    uint8_t packet_type = 0;
+    uint8_t payload_len = 0;
+    uint8_t payload_index = 0;
+    uint8_t payload[64];
+    int state = 0;
+
     while (true)
     {
-        // Read packets from the UART channel and handle them.
-        if (uart_poll_in(uart_dev, &payload_len) == 0)
+        if (uart_poll_in(uart_dev, &received_byte) == 0)
         {
-            // If logging is enabled, print the received payload length.
-            if (bs.logging) {
-                printk("[DEBUG] Received packet with payload length: %d\n", payload_len);
-            }
+            switch (state)
+            {
+                case 0: // WAIT_SYNC
+                    if (received_byte == SYNC_BYTE)
+                    {
+                        state = 1;
+                        payload_index = 0;
+                    }
+                    break;
 
-            // Read the rest of the packet (type and data).
-            packet_t *packet = receive_packet(uart_dev, payload_len);
-            if (packet) {
-                // Process the received packet.
-                // process_packet(packet);
+                case 1: // WAIT_TYPE
+                    packet_type = received_byte;
+                    state = 2;
+                    break;
 
-                // Free the allocated memory for the packet.
-                destroy_packet(packet);
+                case 2: // WAIT_LENGTH
+                    payload_len = received_byte;
+                    if (payload_len == 0)
+                    {
+                        packet_t *packet = build_packet(packet_type, NULL, 0);
+                        if (packet)
+                        {
+                            if (bs.logging) print_packet("BASE STATION uart_read_task", packet);
+                            // handle packet here
+                            destroy_packet(packet);
+                        }
+                        state = 0;
+                    }
+                    else if (payload_len > sizeof(payload))
+                    {
+                        printk("[RX][ERROR] Payload too large (%d) — dropping\n", payload_len);
+                        state = 0;
+                    }
+                    else
+                    {
+                        payload_index = 0;
+                        state = 3;
+                    }
+                    break;
+
+                case 3: // WAIT_PAYLOAD
+                    payload[payload_index++] = received_byte;
+                    if (payload_index >= payload_len)
+                    {
+                        packet_t *packet = build_packet(packet_type, payload, payload_len);
+                        if (packet)
+                        {
+                            if (bs.logging) print_packet("BASE STATION uart_read_task", packet);
+                            // handle packet here
+                            destroy_packet(packet);
+                        }
+                        state = 0;
+                    }
+                    break;
+
+                default:
+                    state = 0;
+                    break;
             }
         }
-        // Small sleep to prevent busy waiting.
         k_yield();
     }
 }
-
 // Periodically checks the event queue and updates the base station state accordingly. 
 void fsm_task()
 {

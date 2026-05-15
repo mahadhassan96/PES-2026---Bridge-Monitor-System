@@ -33,4 +33,5 @@ void destroy_packet(packet_t *packet);
 void send_packet(const struct device *uart_dev, packet_t *packet);
 packet_t *receive_packet(const struct device *uart_dev, uint8_t payload_len);
 
+void print_packet(const char *tag, packet_t *packet);
 #endif /* COMS_H */
