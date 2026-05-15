@@ -75,51 +75,61 @@ void worker_task()
     }
 }
 
-void uart_read_task()
-{
-    uint8_t payload_byte;
-    int packet_state =
+// void uart_read_task()
+// {
+//     uint8_t payload_byte;
+//     static bool synced = false;
+//     static uint8_t payload_len;
+//     static uint8_t packet_type;
 
-    if (!device_is_ready(uart_dev)) {
-        printk("UART not ready\n");
-        return;
-    }
+//     if (!device_is_ready(uart_dev)) {
+//         printk("UART not ready\n");
+//         return;
+//     }
 
-    while (true)
-    {
-        // Read packets from the UART channel and handle them.
-        if (uart_poll_in(uart_dev, &payload_byte) == 0)
-        {
-            printk("[DEBUG] Received packet of payload length: %d!\n", payload_byte);
-            if(payload_byte == SYNC_BYTE){
-                printk("[DEBUG] Received SYNC BYTE: %d!\n", payload_byte);
-            }
+//     while (true)
+//     {
+//         uint8_t byte;
 
+//         if (uart_poll_in(uart_dev, &byte) == 0)
+//         {
+//             if (!synced)
+//             {
+//                 if (byte == SYNC_BYTE)
+//                 {
+//                     synced = true;
+//                     printk("[DEBUG] SYNC detected\n");
+//                 }
+//                 continue;
+//             }
 
-            // Read the rest of the packet (type and data).
-            packet_t *packet = receive_packet(uart_dev, payload_len);
-            if(packet)
-            {
-                // Pass the received packet to the worker task.
-                k_msgq_put(&packet_queue, &packet, K_FOREVER);
-            }
-            
-        }
-        // Small sleep to prevent busy waiting.
-        k_sleep(K_MSEC(1));
-    }
-}
+//             // now treat next byte as LENGTH (or TYPE depending on your protocol)
+//             payload_len = byte;
+
+//             printk("[DEBUG] Received length: %d\n", payload_len);
+
+//             packet_t *packet = receive_packet(uart_dev, payload_len);
+
+//             if (packet)
+//             {
+//                 k_msgq_put(&packet_queue, &packet, K_FOREVER);
+//             }
+
+//             synced = false;
+//         }
+
+//         k_sleep(K_MSEC(1));
+//     }
+// }
 
 void uart_read_task()
 {
     uint8_t received_byte;
-
     uint8_t packet_type = 0;
     uint8_t payload_len = 0;
     uint8_t payload_index = 0;
-    uint8_t payload[64];   // adjust max size as needed
-
-    int state = 0; // 0=WAIT_SYNC, 1=TYPE, 2=LENGTH, 3=PAYLOAD
+    uint8_t payload[64];
+    int state = 0; // 0=WAIT_SYNC, 1=WAIT_TYPE, 2=WAIT_LENGTH, 3=WAIT_PAYLOAD
 
     if (!device_is_ready(uart_dev)) {
         printk("UART not ready\n");
@@ -128,68 +138,67 @@ void uart_read_task()
 
     while (true)
     {
-        if (uart_poll_in(uart_dev, &byte) == 0)
+        if (uart_poll_in(uart_dev, &received_byte) == 0)
         {
+            printk("[DEBUG] Received byte: 0x%02X (state=%d)\n", received_byte, state);
             switch (state)
             {
-                // ---------------- Sync, we need this after error, reset, or soemthing weird happens, im thinking of adding a watchdog to reset the state to 0 after some time ----------------
-                case 0:
+                case 0: // WAIT_SYNC
                     if (received_byte == SYNC_BYTE)
                     {
+                        printk("[DEBUG] SYNC received\n");
                         state = 1;
                         payload_index = 0;
                     }
                     break;
 
-                // ---------------- READ TYPE ----------------
-                case 1:
+                case 1: // WAIT_TYPE
                     packet_type = received_byte;
+                    printk("[DEBUG] TYPE: %d\n", packet_type);
                     state = 2;
                     break;
 
-                // ---------------- check length  ----------------
-                case 2:
+                case 2: // WAIT_LENGTH
                     payload_len = received_byte;
-
+                    printk("[DEBUG] LENGTH: %d\n", payload_len);
                     if (payload_len == 0)
                     {
                         packet_t *packet = build_packet(packet_type, NULL, 0);
-
                         if (packet)
                         {
                             k_msgq_put(&packet_queue, &packet, K_FOREVER);
                         }
-
                         state = 0;
-                        break;
                     }
-
-                    if (payload_len > sizeof(payload))
+                    else if (payload_len > sizeof(payload))
                     {
-                        state = 0; // invalid packet
-                        break;
+                        printk("[ERROR] Payload too large (%d), dropping packet\n", payload_len);
+                        state = 0;
                     }
-
-                    payload_index = 0;
-                    state = 3;
+                    else
+                    {
+                        payload_index = 0;
+                        state = 3;
+                    }
                     break;
 
-                // ---------------- read msg ----------------
-                case 3:
+                case 3: // WAIT_PAYLOAD
                     payload[payload_index++] = received_byte;
-
+                    printk("[DEBUG] PAYLOAD byte [%d/%d]: 0x%02X\n", payload_index, payload_len, received_byte);
                     if (payload_index >= payload_len)
                     {
                         packet_t *packet = build_packet(packet_type, payload, payload_len);
-
                         if (packet)
                         {
                             k_msgq_put(&packet_queue, &packet, K_FOREVER);
+                            printk("[DEBUG] Packet queued: type=%d len=%d\n", packet_type, payload_len);
                         }
-
-                        // reset for next packet
                         state = 0;
                     }
+                    break;
+
+                default:
+                    state = 0;
                     break;
             }
         }

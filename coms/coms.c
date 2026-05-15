@@ -75,6 +75,8 @@ static void uart_send_bytes(const struct device *uart_dev, uint8_t *data, uint32
     for (uint32_t i = 0; i < len; i++) {
         uart_poll_out(uart_dev, data[i]);
     }
+    k_sleep(K_MSEC(1));
+
 }
 
 /*
@@ -87,19 +89,32 @@ static void uart_send_bytes(const struct device *uart_dev, uint8_t *data, uint32
 void send_packet(const struct device *uart_dev, packet_t *packet)
 {
     k_mutex_lock(&uart_tx_mutex, K_FOREVER);
-    
+
     // Send packet start byte.
-    uart_poll_out(uart_dev, SYNC_BYTE);
+    uint8_t sync = SYNC_BYTE;
+    printk("[TX] SYNC: 0x%02X\n", sync);
+    uart_send_bytes(uart_dev, &sync, 1);
+    k_sleep(K_MSEC(1));
 
     // Send the data length first.
+    printk("[TX] LENGTH: 0x%02X (%d)\n", packet->data_len, packet->data_len);
     uart_send_bytes(uart_dev, (uint8_t *)&packet->data_len, 1);
+    k_sleep(K_MSEC(1));
 
     // Then send the packet type.
+    printk("[TX] TYPE: 0x%02X (%d)\n", packet->type, packet->type);
     uart_send_bytes(uart_dev, (uint8_t *)&packet->type, 1);
+    k_sleep(K_MSEC(1));
 
     // Finally send the data (if there is data).
     if (packet->data_len > 0)
     {
+        printk("[TX] PAYLOAD: ");
+        for (int i = 0; i < packet->data_len; i++)
+        {
+            printk("0x%02X ", packet->data[i]);
+        }
+        printk("\n");
         uart_send_bytes(uart_dev, packet->data, packet->data_len);
     }
 

@@ -176,6 +176,11 @@ void request_data()
         send_packet(uart_dev, packet);
         destroy_packet(packet);
     }
+    else{
+            printk("[DEBUG] NOTHING IS BEING SENT!\n");
+
+    }
+    k_sleep(K_MSEC(1000));
 }
 
 void normal_handler(base_station_t *bs, bool state_change)
