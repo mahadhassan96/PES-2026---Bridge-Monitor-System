@@ -141,7 +141,7 @@ void uart_read_task()
                     {
                         k_msgq_put(&packet_queue, &packet, K_FOREVER);
                         printk("[QUEUE] Items waiting: %d\n", k_msgq_num_used_get(&packet_queue));
-                        print_packet("SENSOR NODE uart_read_task", packet);
+                        print_packet("SENSOR NODE CASE2 uart_read_task", packet);
                     }
 
                     state = 0;
@@ -180,7 +180,7 @@ void uart_read_task()
                     {
                         k_msgq_put(&packet_queue, &packet, K_FOREVER);
 
-                        print_packet("SENSOR NODE uart_read_task", packet);
+                        print_packet("SENSOR NODE CASE3 uart_read_task", packet);
                     }
 
                     state = 0;

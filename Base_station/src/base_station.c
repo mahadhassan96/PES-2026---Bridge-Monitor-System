@@ -325,7 +325,7 @@ void uart_read_task()
                         packet_t *packet = build_packet(packet_type, NULL, 0);
                         if (packet)
                         {
-                            if (bs.logging) print_packet("BASE STATION uart_read_task", packet);
+                            if (bs.logging) print_packet("BASE STATION CASE2 uart_read_task", packet);
                             // handle packet here
                             destroy_packet(packet);
                         }
@@ -350,7 +350,7 @@ void uart_read_task()
                         packet_t *packet = build_packet(packet_type, payload, payload_len);
                         if (packet)
                         {
-                            if (bs.logging) print_packet("BASE STATION uart_read_task", packet);
+                            if (bs.logging) print_packet("BASE STATION CASE3 uart_read_task", packet);
                             // handle packet here
                             destroy_packet(packet);
                         }
