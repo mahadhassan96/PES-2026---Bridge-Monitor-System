@@ -23,20 +23,20 @@ void process_packet(packet_t *packet)
     {
         case REQUEST:
         {
-            // Send ACK first
-            packet_t *packet_ack = build_packet(ACK, NULL, 0);
-            if (packet_ack)
-            {
-                send_packet(uart_dev, packet_ack);
-                destroy_packet(packet_ack);
-            }
+            // // Send ACK first
+            // packet_t *packet_ack = build_packet(ACK, NULL, 0);
+            // if (packet_ack)
+            // {
+            //     send_packet(uart_dev, packet_ack);
+            //     destroy_packet(packet_ack);
+            // }
 
             // Send RESPONSE with 3 static floats
             float readings[3] = {1.23f, 4.56f, 7.89f};
             packet_t *packet_response = build_packet(RESPONSE, (uint8_t *)readings, sizeof(readings));
             if (packet_response)
             {
-                print_packet("SENSOR NODE TX", packet_response);
+                print_packet("SENSOR NODE process_packet", packet_response);
                 send_packet(uart_dev, packet_response);
                 destroy_packet(packet_response);
             }
@@ -74,7 +74,6 @@ void send_response(packet_type_t type, uint8_t *data, uint8_t data_len)
 void worker_task()
 {
     init(&sn);
-
     packet_t *packet;
 
     while (true)
@@ -141,6 +140,7 @@ void uart_read_task()
                     if (packet)
                     {
                         k_msgq_put(&packet_queue, &packet, K_FOREVER);
+                        printk("[QUEUE] Items waiting: %d\n", k_msgq_num_used_get(&packet_queue));
                         print_packet("SENSOR NODE uart_read_task", packet);
                     }
 
@@ -202,6 +202,10 @@ void uart_read_task()
                 break;
             }
             }
+        }
+        else
+        {
+            k_sleep(K_MSEC(1)); // nothing received, give worker thread time to launch
         }
 
         k_yield();
