@@ -9,6 +9,7 @@ K_MSGQ_DEFINE(packet_queue, sizeof(packet_t *), QUEUE_SIZE, __alignof__(packet_t
 
 sensor_node_t sn;
 
+
 void init(sensor_node_t *sn)
 {
     if (!device_is_ready(uart_dev))
@@ -17,30 +18,61 @@ void init(sensor_node_t *sn)
     }
 }
 
+static bool in_emergency = false;
+static int packet_count = 0;
+
+K_SEM_DEFINE(emergency_sem, 0, 1);
+
+void sensor_emergency_isr(void)
+{
+    k_sem_give(&emergency_sem);
+}
+
+void emergency_task()
+{
+    while (true)
+    {
+        k_sem_take(&emergency_sem, K_FOREVER);
+        in_emergency = true;
+        packet_t *packet = build_packet(EMERGENCY, NULL, 0);
+        if (packet)
+        {
+            k_msgq_put(&packet_queue, &packet, K_FOREVER);
+        }
+    }
+}
+
+
 void process_packet(packet_t *packet)
 {
+    if (in_emergency && packet->type != EMERGENCY_ACK)
+    {
+        send_response(EMERGENCY, NULL, 0);
+        return;
+    }
+
     switch (packet->type)
     {
         case REQUEST:
         {
-            // // Send ACK first
-            // packet_t *packet_ack = build_packet(ACK, NULL, 0);
-            // if (packet_ack)
-            // {
-            //     send_packet(uart_dev, packet_ack);
-            //     destroy_packet(packet_ack);
-            // }
-
-            // Send RESPONSE with 3 static floats
-            float readings[3] = {1.23f, 4.56f, 7.89f};
-            packet_t *packet_response = build_packet(RESPONSE, (uint8_t *)readings, sizeof(readings));
-            if (packet_response)
+            packet_count++;
+            if (packet_count >= 5)
             {
-                print_packet("SENSOR NODE process_packet", packet_response);
-                send_packet(uart_dev, packet_response);
-                destroy_packet(packet_response);
+                packet_count = 0;
+                sensor_emergency_isr();   // simulates ISR firing, remove when real ISR is ready
+                break;
             }
 
+            float readings[3] = {1.23f, 4.56f, 7.89f};
+            send_response(RESPONSE, (uint8_t *)readings, sizeof(readings));
+            break;
+        }
+
+        case EMERGENCY_ACK:
+        {
+            in_emergency = false;
+            packet_count = 0;
+            send_response(SYN, NULL, 0);
             break;
         }
 
@@ -61,16 +93,6 @@ sensor_reading_t read_sensor_data()
     return reading;
 }
 
-void send_response(packet_type_t type, uint8_t *data, uint8_t data_len)
-{
-    packet_t *response_packet = build_packet(type, data, data_len);
-    if (response_packet)
-    {
-        send_packet(uart_dev, response_packet);
-        destroy_packet(response_packet);
-    }
-}
-
 void worker_task()
 {
     init(&sn);
@@ -86,6 +108,7 @@ void worker_task()
         }
     }
 }
+
 
 void uart_read_task()
 {
@@ -215,3 +238,5 @@ void uart_read_task()
 K_THREAD_DEFINE(uart_read_tid, STACK_SIZE, uart_read_task, NULL, NULL, NULL, READ_PRIO, 0, 0);
 
 K_THREAD_DEFINE(worker_tid, STACK_SIZE, worker_task, NULL, NULL, NULL, WORKER_PRIO, 0, 0);
+
+K_THREAD_DEFINE(emergency_tid, STACK_SIZE, emergency_task, NULL, NULL, NULL, EMERGENCY_PRIO, 0, 0);

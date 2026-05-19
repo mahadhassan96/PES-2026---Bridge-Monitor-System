@@ -2,6 +2,10 @@
 
 // Mutex for UART channel access.
 K_MUTEX_DEFINE(uart_tx_mutex);
+#define UART_NODE DT_NODELABEL(uart0)
+
+static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
+
 
 /*
  * Build a new packet with the specified type and payload.
@@ -220,4 +224,16 @@ void print_packet(const char *tag, packet_t *packet)
     }
 
     printk("\n===========================================\n");
+}
+
+
+void send_response(packet_type_t type, uint8_t *data, uint8_t data_len)
+{
+    packet_t *response_packet = build_packet(type, data, data_len);
+    if (response_packet)
+    {
+        print_packet("SENSOR NODE send_response", response_packet);
+        send_packet(uart_dev, response_packet);
+        destroy_packet(response_packet);
+    }
 }

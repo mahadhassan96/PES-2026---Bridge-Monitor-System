@@ -14,6 +14,8 @@
 
 #define READ_PRIO    -1
 #define WORKER_PRIO  1
+#define EMERGENCY_PRIO 2
+
 
 #define STACK_SIZE 500
 #define QUEUE_SIZE 16

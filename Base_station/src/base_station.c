@@ -36,6 +36,8 @@ static struct k_timer request_timer;
 
 static struct k_poll_event events[1];
 
+
+
 void init_btn(const struct gpio_dt_spec *spec, gpio_callback_handler_t callback, struct gpio_callback *callback_data)
 {
     // Configures button pin as input.
@@ -290,6 +292,45 @@ base_station_event_t get_next_state(base_station_state_t curr_state, base_statio
     return curr_state;
 }
 
+static bool in_emergency = false;
+
+void process_packet(packet_t *packet)
+{
+    if (in_emergency && packet->type != SYN) {
+        send_response(EMERGENCY_ACK, NULL, 0);
+        return;
+    }
+
+    switch (packet->type)
+    {
+        case RESPONSE:
+        {
+            // handle normal sensor data
+            break;
+        }
+
+        case EMERGENCY:
+        {
+            in_emergency = true;
+            base_station_event_t evt = ANOMALY_DETECTED;
+            k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+            send_response(EMERGENCY_ACK, NULL, 0);
+            break;
+        }
+
+        case SYN:
+        {
+            in_emergency = false;
+            base_station_event_t evt = ANOMALY_CLEARED;
+            k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+            break;
+        }
+
+        default:
+            break;
+    }
+}
+
 void uart_read_task()
 {
     uint8_t received_byte;
@@ -325,8 +366,8 @@ void uart_read_task()
                         packet_t *packet = build_packet(packet_type, NULL, 0);
                         if (packet)
                         {
-                            if (bs.logging) print_packet("BASE STATION CASE2 uart_read_task", packet);
-                            // handle packet here
+                            if (bs.logging) print_packet("BASE STATION uart_read_task", packet);
+                            process_packet(packet);
                             destroy_packet(packet);
                         }
                         state = 0;
@@ -350,8 +391,8 @@ void uart_read_task()
                         packet_t *packet = build_packet(packet_type, payload, payload_len);
                         if (packet)
                         {
-                            if (bs.logging) print_packet("BASE STATION CASE3 uart_read_task", packet);
-                            // handle packet here
+                            if (bs.logging) print_packet("BASE STATION uart_read_task", packet);
+                            process_packet(packet);
                             destroy_packet(packet);
                         }
                         state = 0;
