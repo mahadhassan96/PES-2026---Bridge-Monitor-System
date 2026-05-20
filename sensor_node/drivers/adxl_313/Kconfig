@@ -1,0 +1,7 @@
+config ADXL_313
+	bool "ADXL 313 3-Axis Accelerometer"
+	default y
+	depends on DT_HAS_ADXL_313_ENABLED
+	select I2C
+	help
+	  Enable the driver for the ADXL_313.
