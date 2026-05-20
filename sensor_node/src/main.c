@@ -2,13 +2,24 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h> 
 
+/**
+ * @brief 
+ * FSR Sensor: GPIO26
+ * I2C For Accelerometer: Grove 4
+ * 
+ */
+
 #define STACK_SIZE  500 
+#ifndef SENSOR_CHAN_FORCE
+#define SENSOR_CHAN_FORCE SENSOR_CHAN_PRIV_START
+#endif
 
 #define LED2_NODE   DT_ALIAS(led2) 
 const struct gpio_dt_spec int_pin = GPIO_DT_SPEC_GET(DT_NODELABEL(adxl_313), int1_gpios);
 struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(LED2_NODE, gpios); 
 
-const struct device *const dev = DEVICE_DT_GET(DT_NODELABEL(adxl_313));
+const struct device *const acc_dev = DEVICE_DT_GET(DT_NODELABEL(adxl_313));
+const struct device *const fsr_dev = DEVICE_DT_GET(DT_NODELABEL(fsr_sensor));
 
 void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
 {
@@ -26,7 +37,7 @@ void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
 
 void task(struct gpio_dt_spec* led, int delay) 
 {
-    if(!device_is_ready(dev)) {
+    if(!device_is_ready(acc_dev)) {
         printk("Sensor device not ready\n");
     }
     else{
@@ -39,16 +50,21 @@ void task(struct gpio_dt_spec* led, int delay)
         .chan = SENSOR_CHAN_ACCEL_XYZ,
     };
 
-    int ret = sensor_trigger_set(dev, &trig, motion_handler);
+    int ret = sensor_trigger_set(acc_dev, &trig, motion_handler);
     if (ret != 0) {
         printk("Failed to set trigger: %d\n", ret);
     }
 
-    for(;;)
-    {
-        int val = gpio_pin_get_dt(&int_pin);
-        printk("Pin state: %d\n", val);
-        k_msleep(1000);
+    if(!device_is_ready(fsr_dev)) {
+        printk("Sensor device not ready\n");
+    }
+    struct sensor_value force;
+    for(;;){
+        sensor_sample_fetch(fsr_dev);
+        sensor_channel_get(fsr_dev, SENSOR_CHAN_FORCE, &force);
+
+        printk("Force [g]: %d\n", force.val1);
+        k_sleep(K_MSEC(1500));
     }
 }
 
