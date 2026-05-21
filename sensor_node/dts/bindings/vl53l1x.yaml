@@ -1,0 +1,29 @@
+description: VL53L1X time-of-flight distance sensor
+
+compatible: "vl53l1x_st"
+
+include: [sensor-device.yaml, i2c-device.yaml]
+
+properties:
+  int-gpios:
+    type: phandle-array
+    required: true
+    description: GPIO connected to VL53L1X GPIO1 interrupt output
+
+  threshold-mm:
+    type: int
+    required: false
+    default: 300
+    description: Distance threshold in millimeters
+
+  intermeasurement-period-ms:
+    type: int
+    required: false
+    default: 50
+    description: Continuous ranging period in milliseconds
+
+  sample-window-ms:
+    type: int
+    required: false
+    default: 3000
+    description: Averaging window in milliseconds

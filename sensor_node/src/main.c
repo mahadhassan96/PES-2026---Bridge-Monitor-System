@@ -1,37 +1,41 @@
-#include "tof.h"
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
+#include "vl53l1x.h"
 #include "isr.h"
-#include "thresholds.h"
 
 int main(void)
 {
-    if (!tof_init(false)) {
-        printk("Failed to initialize ToF sensor\n");
-        return -1;
+    const struct device *tof =
+        DEVICE_DT_GET(DT_NODELABEL(vl53l1x0));
+
+    if (!device_is_ready(tof)) {
+        printk("VL53L1X not ready\n");
+        return 0;
     }
 
-    if (!tof_set_distance_threshold_interrupt(thresholds.min_distance_mm)) {
-        printk("Failed to set threshold interrupt\n");
+    printk("VL53L1X ready\n");
+    
+    if (sensor_interrupt_init() < 0) {
+        printk("failed to init ToF interrupt\n");
     }
 
-    sensor_interrupt_init();
-    tof_start_continuous(80);
-    uint16_t sampleddistance = 0;
+    if (vl53l1x_start_continuous(tof) < 0) {
+        printk("failed to start continuous mode\n");
+        return 0;
+    }
+
+    printk("continuous mode started\n");
+
     while (1) {
-        // uint16_t distance = tof_read();
-        // if (!did_timeout && distance > 0) {
-        //     printk("Valid distance reading: %d mm\n", distance);
-        // } else {
-        //     // Handle timeout or invalid reading (e.g., log warning, attempt recovery, etc.)
-        //     printk("Invalid distance reading: %d mm, did_timeout: %d\n", distance, did_timeout);
-        // }
+        int distance = avgSampleReading(tof);
 
-        if (avgSampleReading(&sampleddistance, 3000))
-        {
-            printk("Average distance over 3 seconds: %d mm\n", sampleddistance);
+        if (distance < 0) {
+            printk("sample fetch failed\n");
         } else {
-            printk("Failed to get average distance reading\n");
+            printk("Distance: %d mm\n", distance);
         }
-    }
 
-    return 0;
+        k_sleep(K_MSEC(100));
+    }
 }

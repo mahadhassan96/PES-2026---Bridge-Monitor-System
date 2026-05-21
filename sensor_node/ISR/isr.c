@@ -1,14 +1,12 @@
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/kernel.h>
 #include "isr.h"
-#include "tof.h"
-#include <errno.h>
-#include "thresholds.h"
 
-#define TOF_INT_NODE DT_NODELABEL(tof_intrpt)
-static const struct gpio_dt_spec tof_intrpt = GPIO_DT_SPEC_GET(TOF_INT_NODE, gpios);
+#define TOF_NODE DT_NODELABEL(vl53l1x0)
+
+static const struct device *tof_dev = DEVICE_DT_GET(TOF_NODE);
 
 static struct k_work tof_work;
+static struct gpio_callback tof_cb;
+
 static void tof_gpio_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     k_work_submit(&tof_work);
@@ -16,24 +14,43 @@ static void tof_gpio_isr(const struct device *dev, struct gpio_callback *cb, uin
 
 static void tof_work_handler(struct k_work *work)
 {
-    uint16_t distance = tof_read();
-    if (Reading_data.range_status == VL53L1_RANGESTATUS_RANGE_VALID) {
-        printk("interrupt mode detected: %u mm\n", distance);
-    }
+    uint16_t distance = vl53l1x_read(tof_dev);
+    printk("interrupt mode detected: %u mm\n", distance);
 }
 
-static struct gpio_callback tof_cb;
 int sensor_interrupt_init(void)
 {
-    if (!gpio_is_ready_dt(&tof_intrpt)) { return -ENODEV; }
+    int ret;
 
-    gpio_pin_configure_dt(&tof_intrpt, GPIO_INPUT | GPIO_PULL_UP);
+    if (!device_is_ready(tof_dev)) {
+        return -ENODEV;
+    }
+
+    const struct vl53l1x_config *cfg = tof_dev->config;
+    const struct gpio_dt_spec *int_gpio = &cfg->int_gpio;
+
+    if (!gpio_is_ready_dt(int_gpio)) {
+        return -ENODEV;
+    }
 
     k_work_init(&tof_work, tof_work_handler);
-    gpio_pin_interrupt_configure_dt(&tof_intrpt, GPIO_INT_EDGE_TO_ACTIVE);
 
-    gpio_init_callback(&tof_cb, tof_gpio_isr, BIT(tof_intrpt.pin));
-    gpio_add_callback(tof_intrpt.port, &tof_cb);
+    ret = gpio_pin_configure_dt(int_gpio, GPIO_INPUT | GPIO_PULL_UP);
+    if (ret < 0) {
+        return ret;
+    }
+
+    gpio_init_callback(&tof_cb, tof_gpio_isr, BIT(int_gpio->pin));
+
+    ret = gpio_add_callback(int_gpio->port, &tof_cb);
+    if (ret < 0) {
+        return ret;
+    }
+
+    ret = gpio_pin_interrupt_configure_dt(int_gpio, GPIO_INT_EDGE_TO_ACTIVE);
+    if (ret < 0) {
+        return ret;
+    }
 
     return 0;
 }

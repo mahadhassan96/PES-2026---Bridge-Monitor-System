@@ -1,1 +1,2 @@
 add_subdirectory_ifdef(CONFIG_FSR_4XX fsr_4xx)
+add_subdirectory_ifdef(CONFIG_VL53L1X_ST vl53l1x)
