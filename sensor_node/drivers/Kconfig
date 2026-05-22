@@ -1,3 +1,3 @@
 rsource "fsr_4xx/Kconfig"
 rsource "vl53l1x/Kconfig"
-rsource "adxl313/Kconfig"
+rsource "adxl_313/Kconfig"

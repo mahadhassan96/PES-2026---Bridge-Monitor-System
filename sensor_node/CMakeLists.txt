@@ -12,12 +12,14 @@ project(sensor_node)
 set(OPENOCD "openocd")
 set(OPENOCD_DEFAULT_PATH "/usr/local/share/openocd/scripts")
 
-target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include )
 
 file(GLOB SRC_FILES
-    "src/*.c"
-    "drivers/tof/*.c"
+    "src/main.c"
+    "src/I2C_Interface.c"
+    "src/thresholds.c"
     "ISR/*.c"
+    "../coms/coms.c"
 )
 
 target_sources(app PRIVATE ${SRC_FILES})

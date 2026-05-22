@@ -1,8 +1,10 @@
 
 #include "../../include/sensor_node.h"
+#include "../../include/coms.h"
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
+
 
 #define UART_NODE DT_NODELABEL(uart0)
 
@@ -59,7 +61,6 @@ void emergency_task()
         }
     }
 }
-
 
 void process_packet(packet_t *packet)
 {

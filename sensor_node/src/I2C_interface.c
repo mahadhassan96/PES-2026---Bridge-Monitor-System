@@ -19,6 +19,17 @@ i2c_status sensor_write_reg(uint8_t device_addr, uint16_t reg_addr, const uint8_
     return (i2c_write(g_i2c_dev, reg_buf, length + 2, device_addr) == 0)? I2C_OK : I2C_ERROR_BUS;
 }
 
+i2c_status sensor_read_reg_length(uint8_t device_addr, uint16_t reg_addr, uint8_t *data, uint8_t length)
+{
+    uint8_t reg_buf[1 + length];
+    reg_buf[0] = reg_addr;
+    if (!device_is_ready(g_i2c_dev)) {
+        return I2C_ERROR_NOT_READY;
+    }
+
+    return (i2c_write_read(g_i2c_dev, device_addr, reg_buf, sizeof(reg_buf), data, length) == 0)? I2C_OK : I2C_ERROR_BUS;
+}
+
 i2c_status sensor_read_reg(uint8_t device_addr, uint16_t reg_addr, uint8_t *data, uint16_t length)
 {
     uint8_t reg_buf[2] = { reg_addr >> 8, reg_addr & 0xFF };

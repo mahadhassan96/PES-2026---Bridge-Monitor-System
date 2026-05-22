@@ -28,6 +28,7 @@ typedef struct
 } packet_t;
 
 packet_t *build_packet(packet_type_t type, uint8_t *data, uint8_t data_len);
+
 void destroy_packet(packet_t *packet);
 
 void send_packet(const struct device *uart_dev, packet_t *packet);

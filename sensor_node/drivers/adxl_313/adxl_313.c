@@ -39,7 +39,7 @@ struct adxl_313_config {
     struct gpio_dt_spec int_gpio;
 };
 
-static int adxl313_trigger_set(const struct device *dev,
+static int adxl_313_trigger_set(const struct device *dev,
                                const struct sensor_trigger *trig,
                                sensor_trigger_handler_t handler)
 {
@@ -125,7 +125,7 @@ static int adxl_313_channel_get(const struct device *dev, enum sensor_channel ch
 static const struct sensor_driver_api adxl_313_api = {
     .sample_fetch = adxl_313_sample_fetch,
     .channel_get = adxl_313_channel_get,
-    .trigger_set = adxl313_trigger_set
+    .trigger_set = adxl_313_trigger_set
 };
 
 static int adxl_313_init(const struct device *dev){
@@ -162,23 +162,23 @@ static int adxl_313_init(const struct device *dev){
     uint8_t status;
     uint8_t act_inact_ctl = 0x70;
 
-    if(sensor_write_reg(ADDRESS, DATA_FORMAT, &data_format, 1) != I2C_OK){  return I2C_ERROR_BUS;}
-    if(sensor_write_reg(ADDRESS, FIFO_CTL, &fifo_ctl, 1) != I2C_OK){  return I2C_ERROR_BUS;}
-    if(sensor_write_reg(ADDRESS, THRESH_ACT, &thresh_act, 1) != I2C_OK){  return I2C_ERROR_BUS;}
-    if(sensor_write_reg(ADDRESS, ACT_INACT_CTL, &act_inact_ctl, 1) != I2C_OK){  return I2C_ERROR_BUS;}
-    if(sensor_write_reg(ADDRESS, INT_ENABLE, &int_enable, 1) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_u8(ADDRESS, DATA_FORMAT, data_format) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_u8(ADDRESS, FIFO_CTL, fifo_ctl) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_u8(ADDRESS, THRESH_ACT, thresh_act) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_u8(ADDRESS, ACT_INACT_CTL, act_inact_ctl) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_u8(ADDRESS, INT_ENABLE, int_enable) != I2C_OK){  return I2C_ERROR_BUS;}
     
-    sensor_read_reg(ADDRESS, XYZ_DATA, buffer, 6);
+    sensor_read_reg_length(ADDRESS, XYZ_DATA, buffer, 6);
     k_msleep(2);
-    if(sensor_write_reg(ADDRESS, POWER_CTL, &power_ctl, 1) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_u8(ADDRESS, POWER_CTL, power_ctl) != I2C_OK){  return I2C_ERROR_BUS;}
 
     k_msleep(20);
 
-    sensor_read_reg(ADDRESS, INT_ENABLE, &status, 1);
+    sensor_read_reg_u8(ADDRESS, INT_ENABLE, &status);
     //printk("int enable: %d\n", status);
-    sensor_read_reg(ADDRESS, POWER_CTL, &status, 1);
+    sensor_read_reg_u8(ADDRESS, POWER_CTL, &status);
     //printk("POWER CTL: %d\n", status);
-    sensor_read_reg(ADDRESS, INT_SOURCE, &status, 1);
+    sensor_read_reg_u8(ADDRESS, INT_SOURCE, &status);
 
     k_msleep(100);
 
