@@ -1,9 +1,20 @@
 
 #include "../../include/sensor_node.h"
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/gpio.h>
 
 #define UART_NODE DT_NODELABEL(uart0)
 
+#ifndef SENSOR_CHAN_FORCE
+#define SENSOR_CHAN_FORCE SENSOR_CHAN_PRIV_START
+#endif
+
+const struct device *const acc_dev = DEVICE_DT_GET(DT_NODELABEL(adxl_313));
 static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
+
+const struct device *const fsr_dev = DEVICE_DT_GET(DT_NODELABEL(fsr_sensor));
+
 
 K_MSGQ_DEFINE(packet_queue, sizeof(packet_t *), QUEUE_SIZE, __alignof__(packet_t *));
 
@@ -12,6 +23,13 @@ sensor_node_t sn;
 
 void init(sensor_node_t *sn)
 {
+	if(!device_is_ready(acc_dev)) {
+        printk("Sensor device not ready\n");
+    }
+    else{
+        printk("Sensor Init complete\n");
+    }
+
     if (!device_is_ready(uart_dev))
     {
         return;
@@ -53,17 +71,22 @@ void process_packet(packet_t *packet)
 
     switch (packet->type)
     {
+		/*Request of sensor data*/
         case REQUEST:
         {
-            packet_count++;
-            if (packet_count >= 5)
-            {
-                packet_count = 0;
-                sensor_emergency_isr();   // simulates ISR firing, remove when real ISR is ready
-                break;
-            }
 
-            float readings[3] = {1.23f, 4.56f, 7.89f};
+			struct sensor_value accel[3];
+   			struct sensor_value force;
+
+			// 1- Get the XYZ values
+			sensor_sample_fetch(acc_dev);
+			sensor_channel_get(acc_dev, SENSOR_CHAN_ACCEL_XYZ, accel);
+
+			//2- GET FSR
+			sensor_sample_fetch(fsr_dev);
+        	sensor_channel_get(fsr_dev, SENSOR_CHAN_FORCE, &force);
+
+            int readings[5] = {accel[0].val1, accel[1].val1, accel[2].val1, force.val1, 88};
             send_response(RESPONSE, (uint8_t *)readings, sizeof(readings));
             break;
         }

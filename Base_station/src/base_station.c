@@ -568,14 +568,11 @@ void uart_rx_task(void)
 
         case 1: // WAIT_TYPE
             packet_type = byte;
-            printk("[RX] TYPE: 0x%02X\n", byte);
             state = 2;
             break;
 
         case 2: // WAIT_LENGTH
             payload_len = byte;
-            printk("[RX] WAIT_LENGTH: raw byte=0x%02X, payload_len=%u\n", byte, payload_len);
-
             if (payload_len == 0)
             {
                 // Zero-payload packet — hand it off immediately

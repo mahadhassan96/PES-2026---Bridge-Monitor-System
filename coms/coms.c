@@ -110,12 +110,6 @@ void send_packet(const struct device *uart_dev, packet_t *packet)
     // Finally send the data (if there is data).
     if (packet->data_len > 0)
     {
-        printk("[TX] PAYLOAD: ");
-        for (int i = 0; i < packet->data_len; i++)
-        {
-            printk("0x%02X ", packet->data[i]);
-        }
-        printk("\n");
         uart_send_bytes(uart_dev, packet->data, packet->data_len);
     }
 
@@ -213,19 +207,33 @@ void print_packet(const char *tag, packet_t *packet)
 
     if (packet->data_len == 0 || packet->data == NULL)
     {
-        printk("<EMPTY>");
+        printk("<EMPTY>\n");
     }
+    /* Check if the packet actually contains our 5-integer telemetry payload */
+    else if ((packet->type == RESPONSE || packet->type == EMERGENCY) && 
+             (packet->data_len == sizeof(int) * 5))
+    {
+        int *readings = (int *)packet->data;
+        printk("\n"
+               "  -> Accel X: %d\n"
+               "  -> Accel Y: %d\n"
+               "  -> Accel Z: %d\n"
+               "  -> FSR : %d\n"
+               "  -> DISTANCE: %d\n",
+               readings[0], readings[1], readings[2], readings[3], readings[4]);
+    }
+    /* Fallback layout: Print raw hex dump for control or malformed packets */
     else
     {
-        for (int i = 0; i < packet->data_len; i++)
+        for (uint8_t i = 0; i < packet->data_len; i++)
         {
             printk("%02X ", packet->data[i]);
         }
+        printk("\n");
     }
-
-    printk("\n===========================================\n");
+    
+    printk("==================================================\n");
 }
-
 
 void send_response(packet_type_t type, uint8_t *data, uint8_t data_len)
 {
