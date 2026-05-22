@@ -3,8 +3,10 @@ cmake_minimum_required(VERSION 3.20.0)
 # 1. Bypass the Kconfig "Aborting" behavior
 set(KCONFIG_ERROR_ON_WARNING OFF CACHE BOOL "" FORCE)
 
-# Tell Zephyr this project itself is the module
 list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR})
+list(APPEND ZEPHYR_LIBRARY_EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 # 2. Load Zephyr
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
