@@ -18,9 +18,10 @@
 
 #define STACK_SIZE 500
 #define QUEUE_SIZE 16
-#define READ_PRIO 2
-#define UPDATE_PRIO -1
-#define WORKER_PRIO 1
+#define READ_PRIO 5
+#define UPDATE_PRIO 7
+#define WORKER_PRIO 8
+#define HANDLER_PRIO  6
 
 typedef enum
 {

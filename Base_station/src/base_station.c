@@ -1,8 +1,15 @@
 #include "../../include/base_station.h"
 
+
+// ── Queues ──────────────────────────────────────────────────────────────────
 // Create an event queue.
 K_MSGQ_DEFINE(event_queue, sizeof(base_station_event_t), QUEUE_SIZE, __alignof__(base_station_event_t));
 
+// Raw byte queue: ISR to uart_rx_task
+K_MSGQ_DEFINE(uart_byte_queue, sizeof(uint8_t), 256, 1);
+
+// Packet queue: uart_rx_task to packet_handler_task
+K_MSGQ_DEFINE(packet_queue, sizeof(packet_t *), QUEUE_SIZE, __alignof__(packet_t *));
 base_station_t bs;
 
 // Create a semaphore for logging.
@@ -36,8 +43,6 @@ static struct k_timer request_timer;
 
 static struct k_poll_event events[1];
 
-
-
 void init_btn(const struct gpio_dt_spec *spec, gpio_callback_handler_t callback, struct gpio_callback *callback_data)
 {
     // Configures button pin as input.
@@ -56,27 +61,113 @@ void init_btn(const struct gpio_dt_spec *spec, gpio_callback_handler_t callback,
 void init_led(const struct gpio_dt_spec *spec)
 {
     if (!gpio_is_ready_dt(spec))
-	{
-		return;
-	}
+    {
+        return;
+    }
 
     // Configures LED pin as output.
-	int ret = gpio_pin_configure_dt(spec, GPIO_OUTPUT_INACTIVE);
-    if (ret < 0) {
+    int ret = gpio_pin_configure_dt(spec, GPIO_OUTPUT_INACTIVE);
+    if (ret < 0)
+    {
         return;
     }
 }
+static void uart_isr_old(const struct device *dev, void *user_data)
+{
+    static uint8_t packet_type = 0;
+    static uint8_t payload_len = 0;
+    static uint8_t payload_index = 0;
+    static uint8_t payload[64];
+    static int state = 0;
 
+    if (!uart_irq_update(dev)) { return; }
+    if (!uart_irq_rx_ready(dev)) { return; }
+
+    uint8_t byte;
+    uart_fifo_read(dev, &byte, 1);
+
+    switch (state)
+    {
+        case 0: // WAIT_SYNC
+            if (byte == SYNC_BYTE)
+            {
+                state = 1;
+                payload_index = 0;
+            }
+            break;
+
+        case 1: // WAIT_TYPE
+            packet_type = byte;
+            state = 2;
+            break;
+
+        case 2: // WAIT_LENGTH
+            payload_len = byte;
+            if (payload_len == 0)
+            {
+                packet_t *packet = build_packet(packet_type, NULL, 0);
+                if (packet)
+                {
+                    process_packet(packet);
+                    destroy_packet(packet);
+                }
+                state = 0;
+            }
+            else if (payload_len > sizeof(payload))
+            {
+                state = 0;
+            }
+            else
+            {
+                payload_index = 0;
+                state = 3;
+            }
+            break;
+
+        case 3: // WAIT_PAYLOAD
+            payload[payload_index++] = byte;
+            if (payload_index >= payload_len)
+            {
+                packet_t *packet = build_packet(packet_type, payload, payload_len);
+                if (packet)
+                {
+                    process_packet(packet);
+                    destroy_packet(packet);
+                }
+                state = 0;
+            }
+            break;
+
+        default:
+            state = 0;
+            break;
+    }
+}
+
+
+// ISR, enqueue Bytes in uart_byte_queue
+static void uart_isr(const struct device *dev, void *user_data)
+{
+    if (!uart_irq_update(dev))    { return; }
+    if (!uart_irq_rx_ready(dev))  { return; }
+
+    uint8_t byte;
+    while (uart_fifo_read(dev, &byte, 1) == 1) {
+        // Non-blocking put; drop byte on overflow (better than blocking in ISR)
+        k_msgq_put(&uart_byte_queue, &byte, K_NO_WAIT);
+    }
+}
 // Sets up the initial state and performs necessary setup for the base station.
-void init(base_station_t* bs)
+void init(base_station_t *bs)
 {
     // Initialize the base station state
     bs->curr_state = BOOT;
-    if(bs->logging) {
+    if (bs->logging)
+    {
         printk("[DEBUG] Booting!\n");
     }
 
-    if(!bs->hw_init)
+    if (!bs->hw_init)
     {
         // Initialize UART device.
         if (!device_is_ready(uart_dev))
@@ -91,6 +182,10 @@ void init(base_station_t* bs)
         // Initialize buttons and their ISRs.
         init_btn(&btn0_spec, reset_btn_isr, &reset_btn_cb_data);
         init_btn(&btn1_spec, logging_btn_isr, &logging_btn_cb_data);
+
+        // Initialize ISR
+        uart_irq_callback_set(uart_dev, uart_isr);
+        uart_irq_rx_enable(uart_dev);
 
         // Initialize LEDs.
         init_led(&force_led_spec);
@@ -137,10 +232,16 @@ void timer_handler(struct k_timer *t)
 
 static inline void toggle_timer(bool state_change, bool start)
 {
-    if (!state_change) { return; }
-    if (start) {
+    if (!state_change)
+    {
+        return;
+    }
+    if (start)
+    {
         k_timer_start(&request_timer, K_SECONDS(WORK_INTERVAL_S), K_SECONDS(WORK_INTERVAL_S));
-    } else {
+    }
+    else
+    {
         k_timer_stop(&request_timer);
     }
 }
@@ -201,14 +302,14 @@ void normal_handler(base_station_t *bs, bool state_change)
 }
 
 void turn_off_leds()
-{       
+{
     gpio_pin_set_dt(&force_led_spec, 0);
     gpio_pin_set_dt(&dist_led_spec, 0);
     gpio_pin_set_dt(&accel_led_spec, 0);
 }
 
 void turn_on_leds(bool force, bool dist, bool accel)
-{   
+{
     gpio_pin_set_dt(&force_led_spec, force);
     gpio_pin_set_dt(&dist_led_spec, dist);
     gpio_pin_set_dt(&accel_led_spec, accel);
@@ -222,14 +323,17 @@ void worker_task()
 
     int signaled, result;
     bool state_change = false;
-    
-    while (true) {
+
+    while (true)
+    {
         // Wait for a signal to perform work.
         k_poll(events, 1, K_FOREVER);
 
-        if (events[0].state == K_POLL_STATE_SIGNALED) {
+        if (events[0].state == K_POLL_STATE_SIGNALED)
+        {
 
-            if(bs.logging) {
+            if (bs.logging)
+            {
                 printk("[DEBUG] Received work signal!\n");
             }
 
@@ -243,22 +347,22 @@ void worker_task()
 
             switch (bs.curr_state)
             {
-                case ALERT:
-                    alert_handler(&bs, state_change);
-                    break;
+            case ALERT:
+                alert_handler(&bs, state_change);
+                break;
 
-                case BOOT:
-                    boot_handler(&bs, state_change);
-                    break;
+            case BOOT:
+                boot_handler(&bs, state_change);
+                break;
 
-                case ERROR:
-                    error_handler(&bs, state_change);
-                    break;
-                
-                // Default to normal case.
-                default:
-                    normal_handler(&bs, state_change);
-                    break;
+            case ERROR:
+                error_handler(&bs, state_change);
+                break;
+
+            // Default to normal case.
+            default:
+                normal_handler(&bs, state_change);
+                break;
             }
         }
     }
@@ -268,25 +372,49 @@ base_station_event_t get_next_state(base_station_state_t curr_state, base_statio
 {
     switch (curr_state)
     {
-        case NORMAL:
-            if (ev == ANOMALY_DETECTED) { return ALERT; }
-            else if(ev == RESET_PRESSED) { return BOOT; }
-            else if (ev == ERROR_OCCURRED) { return ERROR; }
-            break;
+    case NORMAL:
+        if (ev == ANOMALY_DETECTED)
+        {
+            return ALERT;
+        }
+        else if (ev == RESET_PRESSED)
+        {
+            return BOOT;
+        }
+        else if (ev == ERROR_OCCURRED)
+        {
+            return ERROR;
+        }
+        break;
 
-        case BOOT:
-            if (ev == BOOT_COMPLETE) { return NORMAL; }
-            break;
+    case BOOT:
+        if (ev == BOOT_COMPLETE)
+        {
+            return NORMAL;
+        }
+        break;
 
-        case ALERT:
-            if(ev == RESET_PRESSED) { return BOOT; }
-            else if (ev == ANOMALY_CLEARED) { return NORMAL; }
-            else if (ev == ERROR_OCCURRED) { return ERROR; }
-            break;
+    case ALERT:
+        if (ev == RESET_PRESSED)
+        {
+            return BOOT;
+        }
+        else if (ev == ANOMALY_CLEARED)
+        {
+            return NORMAL;
+        }
+        else if (ev == ERROR_OCCURRED)
+        {
+            return ERROR;
+        }
+        break;
 
-        case ERROR:
-            if(ev == RESET_PRESSED) { return BOOT; }
-            break;
+    case ERROR:
+        if (ev == RESET_PRESSED)
+        {
+            return BOOT;
+        }
+        break;
     }
     // If no transition occurs, return the current state.
     return curr_state;
@@ -296,42 +424,46 @@ static bool in_emergency = false;
 
 void process_packet(packet_t *packet)
 {
-    if (in_emergency && packet->type != SYN) {
+    if (in_emergency && packet->type != SYN)
+    {
         send_response(EMERGENCY_ACK, NULL, 0);
         return;
     }
 
     switch (packet->type)
     {
-        case RESPONSE:
-        {
-            // handle normal sensor data
-            break;
-        }
+    case RESPONSE:
+    {
+        print_packet("BASE STATION RESPONSE", packet);
+        break;
+    }
 
-        case EMERGENCY:
-        {
-            in_emergency = true;
-            base_station_event_t evt = ANOMALY_DETECTED;
-            k_msgq_put(&event_queue, &evt, K_NO_WAIT);
-            send_response(EMERGENCY_ACK, NULL, 0);
-            break;
-        }
+    case EMERGENCY:
+    {
+        print_packet("BASE STATION EMERGENCY", packet);
 
-        case SYN:
-        {
-            in_emergency = false;
-            base_station_event_t evt = ANOMALY_CLEARED;
-            k_msgq_put(&event_queue, &evt, K_NO_WAIT);
-            break;
-        }
+        in_emergency = true;
+        base_station_event_t evt = ANOMALY_DETECTED;
+        k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+        send_response(EMERGENCY_ACK, NULL, 0); 
+        break;
+    }
 
-        default:
-            break;
+    case SYN:
+    {
+        in_emergency = false;
+        base_station_event_t evt = ANOMALY_CLEARED;
+        k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+        break;
+    }
+
+    default:
+        print_packet("BASE STATION DEFAULT", packet);
+        break;
     }
 }
 
-void uart_read_task()
+void uart_read_task_old()
 {
     uint8_t received_byte;
     uint8_t packet_type = 0;
@@ -346,79 +478,184 @@ void uart_read_task()
         {
             switch (state)
             {
-                case 0: // WAIT_SYNC
-                    if (received_byte == SYNC_BYTE)
-                    {
-                        state = 1;
-                        payload_index = 0;
-                    }
-                    break;
+            case 0: // WAIT_SYNC
+                if (received_byte == SYNC_BYTE)
+                {
+                    state = 1;
+                    payload_index = 0;
+                }
+                break;
 
-                case 1: // WAIT_TYPE
-                    packet_type = received_byte;
-                    state = 2;
-                    break;
+            case 1: // WAIT_TYPE
+                packet_type = received_byte;
+                state = 2;
+                break;
 
-                case 2: // WAIT_LENGTH
-                    payload_len = received_byte;
-                    if (payload_len == 0)
+            case 2: // WAIT_LENGTH
+                payload_len = received_byte;
+                if (payload_len == 0)
+                {
+                    packet_t *packet = build_packet(packet_type, NULL, 0);
+                    if (packet)
                     {
-                        packet_t *packet = build_packet(packet_type, NULL, 0);
-                        if (packet)
-                        {
-                            if (bs.logging) print_packet("BASE STATION uart_read_task", packet);
-                            process_packet(packet);
-                            destroy_packet(packet);
-                        }
-                        state = 0;
+                        if (bs.logging)
+                            print_packet("BASE STATION uart_read_task", packet);
+                        process_packet(packet);
+                        destroy_packet(packet);
                     }
-                    else if (payload_len > sizeof(payload))
-                    {
-                        printk("[RX][ERROR] Payload too large (%d) — dropping\n", payload_len);
-                        state = 0;
-                    }
-                    else
-                    {
-                        payload_index = 0;
-                        state = 3;
-                    }
-                    break;
-
-                case 3: // WAIT_PAYLOAD
-                    payload[payload_index++] = received_byte;
-                    if (payload_index >= payload_len)
-                    {
-                        packet_t *packet = build_packet(packet_type, payload, payload_len);
-                        if (packet)
-                        {
-                            if (bs.logging) print_packet("BASE STATION uart_read_task", packet);
-                            process_packet(packet);
-                            destroy_packet(packet);
-                        }
-                        state = 0;
-                    }
-                    break;
-
-                default:
                     state = 0;
-                    break;
+                }
+                else if (payload_len > sizeof(payload))
+                {
+                    printk("[RX][ERROR] Payload too large (%d) — dropping\n", payload_len);
+                    state = 0;
+                }
+                else
+                {
+                    payload_index = 0;
+                    state = 3;
+                }
+                break;
+
+            case 3: // WAIT_PAYLOAD
+                payload[payload_index++] = received_byte;
+                if (payload_index >= payload_len)
+                {
+                    packet_t *packet = build_packet(packet_type, payload, payload_len);
+                    if (packet)
+                    {
+                        if (bs.logging)
+                            print_packet("BASE STATION uart_read_task", packet);
+                        process_packet(packet);
+                        destroy_packet(packet);
+                    }
+                    state = 0;
+                }
+                break;
+
+            default:
+                state = 0;
+                break;
             }
         }
         k_yield();
     }
 }
-// Periodically checks the event queue and updates the base station state accordingly. 
+
+//uart_rx_task: frames bytes - complete packetS
+void uart_rx_task(void)
+{
+    static uint8_t packet_type  = 0;
+    static uint8_t payload_len  = 0;
+    static uint8_t payload_idx  = 0;
+    static uint8_t payload[64];
+    static int     state        = 0;
+
+    uint8_t byte;
+
+    while (true) {
+        // Block until a byte arrives from the ISR
+        k_msgq_get(&uart_byte_queue, &byte, K_FOREVER);
+
+        switch (state) {
+        case 0: // WAIT_SYNC
+            if (byte == SYNC_BYTE) {
+                printk("[RX] SYNC found\n");
+                payload_idx = 0;
+                state = 1;
+            }
+            break;
+
+        case 1: // WAIT_TYPE
+            packet_type = byte;
+            printk("[RX] TYPE: 0x%02X\n", byte);
+            state = 2;
+            break;
+
+        case 2: // WAIT_LENGTH
+            payload_len = byte;
+            printk("[RX] WAIT_LENGTH: raw byte=0x%02X, payload_len=%u\n", byte, payload_len);
+
+            if (payload_len == 0)
+            {
+                // Zero-payload packet — hand it off immediately
+                packet_t *pkt = build_packet(packet_type, NULL, 0);
+                if (pkt)
+                {
+                    if (k_msgq_put(&packet_queue, &pkt, K_NO_WAIT) != 0)
+                    {
+                        printk("[RX][ERROR] Packet queue full — dropping packet\n");
+                        destroy_packet(pkt);
+                    }
+                }
+                state = 0;
+            }
+            else if (payload_len > sizeof(payload))
+            {
+                printk("[RX][ERROR] Payload too large (%u) - dropping\n", payload_len);
+                state = 0;
+            }
+            else
+            {
+                payload_idx = 0;
+                state = 3;
+            }
+            break;
+
+        case 3: // WAIT_PAYLOAD
+            printk("[RX] PAYLOAD byte[%u]=0x%02X\n", payload_idx, byte);
+            payload[payload_idx++] = byte;
+            if (payload_idx >= payload_len)
+            {
+                packet_t *pkt = build_packet(packet_type, payload, payload_len);
+                if (pkt)
+                {
+                    if (k_msgq_put(&packet_queue, &pkt, K_NO_WAIT) != 0)
+                    {
+                        printk("[RX][ERROR] Packet queue full - dropping packet\n");
+                        destroy_packet(pkt);
+                    }
+                }
+                state = 0;
+            }
+            break;
+
+        default:
+            state = 0;
+            break;
+        }
+    }
+}
+
+void packet_handler_task(void)
+{
+    packet_t *pkt;
+
+    while (true) {
+        if (k_msgq_get(&packet_queue, &pkt, K_FOREVER) == 0) {
+            if (bs.logging) {
+                print_packet("BASE STATION", pkt);
+            }
+            process_packet(pkt);
+            destroy_packet(pkt);
+        }
+    }
+}
+// Periodically checks the event queue and updates the base station state accordingly.
 void fsm_task()
 {
     base_station_event_t ev;
 
-    while (true) {
+    while (true)
+    {
         // Check for events in the event queue and handle them.
-        if (k_msgq_get(&event_queue, &ev, K_FOREVER) == 0) {
+        if (k_msgq_get(&event_queue, &ev, K_FOREVER) == 0)
+        {
 
             log_event(&bs, ev);
 
-            if (ev == LOGGING_PRESSED) {
+            if (ev == LOGGING_PRESSED)
+            {
                 // Toggle logging state without changing the current state.
                 bs.logging = !bs.logging;
                 log_state(&bs);
@@ -435,18 +672,26 @@ void fsm_task()
 
 static const char *event_str(base_station_event_t ev)
 {
-    switch (ev) {
-        case RESET_PRESSED:     return "Reset Pressed";
-        case LOGGING_PRESSED:   return "Logging Pressed";
-        case BOOT_COMPLETE:     return "Boot Complete";
-        case ANOMALY_DETECTED:  return "Anomaly Detected";
-        case ANOMALY_CLEARED:   return "Anomaly Cleared";
-        case ERROR_OCCURRED:    return "Error Occurred";
-        default:                return "Unknown Event";
+    switch (ev)
+    {
+    case RESET_PRESSED:
+        return "Reset Pressed";
+    case LOGGING_PRESSED:
+        return "Logging Pressed";
+    case BOOT_COMPLETE:
+        return "Boot Complete";
+    case ANOMALY_DETECTED:
+        return "Anomaly Detected";
+    case ANOMALY_CLEARED:
+        return "Anomaly Cleared";
+    case ERROR_OCCURRED:
+        return "Error Occurred";
+    default:
+        return "Unknown Event";
     }
 }
 
-void log_event(base_station_t* bs, base_station_event_t ev)
+void log_event(base_station_t *bs, base_station_event_t ev)
 {
     const char *msg = event_str(ev);
 
@@ -468,25 +713,36 @@ void log_event(base_station_t* bs, base_station_event_t ev)
 
 static const char *state_str(base_station_state_t state)
 {
-    switch (state) {
-        case NORMAL:    return "NORMAL";
-        case ALERT:     return "ALERT";
-        case BOOT:      return "BOOT";
-        case ERROR:     return "ERROR";
-        default:        return "UNKNOWN";
+    switch (state)
+    {
+    case NORMAL:
+        return "NORMAL";
+    case ALERT:
+        return "ALERT";
+    case BOOT:
+        return "BOOT";
+    case ERROR:
+        return "ERROR";
+    default:
+        return "UNKNOWN";
     }
 }
 
-void log_state(base_station_t* bs)
+void log_state(base_station_t *bs)
 {
     const char *msg = state_str(bs->curr_state);
 
     // Skip printing if logging is disabled.
-    if(!bs->logging) { return; }
+    if (!bs->logging)
+    {
+        return;
+    }
 
     printk("[DEBUG] State: %s\n", msg);
 }
 
 K_THREAD_DEFINE(fsm_tid, STACK_SIZE, fsm_task, NULL, NULL, NULL, UPDATE_PRIO, 0, 0);
 K_THREAD_DEFINE(worker_tid, STACK_SIZE, worker_task, NULL, NULL, NULL, WORKER_PRIO, 0, 0);
-K_THREAD_DEFINE(uart_read_tid, STACK_SIZE, uart_read_task, NULL, NULL, NULL, READ_PRIO, 0, 0);
+K_THREAD_DEFINE(rx_tid, STACK_SIZE, uart_rx_task, NULL, NULL, NULL, READ_PRIO, 0, 0);
+K_THREAD_DEFINE(handler_tid, STACK_SIZE, packet_handler_task, NULL, NULL, NULL, HANDLER_PRIO,  0, 0);
+// K_THREAD_DEFINE(uart_read_tid, STACK_SIZE, uart_read_task, NULL, NULL, NULL, READ_PRIO, 0, 0);
