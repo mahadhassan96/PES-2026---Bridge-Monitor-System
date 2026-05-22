@@ -29,3 +29,17 @@
         };
     };
 };
+
+{
+zephyr,user {
+    /* This creates a handle for our code to find */
+    io-channels = <&adc 0>; 
+};
+
+fsr_sensor: fsr_4xx {
+    compatible = "fsr_4xx";
+    io-channels = <&adc 0>;
+    resolution = <12>;  /* RP2350 usually uses 12-bit ADC */
+    status = "okay";
+};
+};

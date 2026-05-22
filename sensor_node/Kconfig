@@ -1,0 +1,4 @@
+source "Kconfig.zephyr"
+
+# Use the full path here to force Windows to find it
+source "C:/Users/hamaxa/zephyrproject/PES_Project/sensor_node/drivers/Kconfig"

@@ -1,0 +1,2 @@
+# Use the full path here as well
+source "C:/Users/hamaxa/zephyrproject/PES_Project/sensor_node/drivers/fsr_4xx/Kconfig"
