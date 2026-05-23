@@ -17,7 +17,9 @@ set(OPENOCD_DEFAULT_PATH "/usr/local/share/openocd/scripts")
 project(lab2_part1)
 
 # Add source files
-target_include_directories(app PRIVATE src/inc)
+target_include_directories(app PRIVATE src/inc .)
 FILE(GLOB SRC_FILES "src/*.c")
 target_sources(app PRIVATE ../../coms/coms.c ${SRC_FILES})
 
+#add_subdirectory(drivers/sensor_node)
+#add_dependencies(drivers__sensor_node offsets)

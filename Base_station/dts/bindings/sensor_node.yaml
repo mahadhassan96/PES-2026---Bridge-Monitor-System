@@ -1,0 +1,10 @@
+# dts/bindings/vendor,my-sensor.yaml
+description: Custom UART-based sensor driver for Raspberry Pi Pico 2
+
+# This matches the compatible string you will use in your overlay and C driver
+compatible: "sensor_node"
+
+# Tells Zephyr this device lives on a UART bus
+include: [sensor-device.yaml, uart-device.yaml]
+
+properties:

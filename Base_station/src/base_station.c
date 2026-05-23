@@ -1,6 +1,8 @@
 #include "../../include/base_station.h"
-
-
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
+#include "drivers/sensor_node/sensor_node.h"
 // ── Queues ──────────────────────────────────────────────────────────────────
 // Create an event queue.
 K_MSGQ_DEFINE(event_queue, sizeof(base_station_event_t), QUEUE_SIZE, __alignof__(base_station_event_t));

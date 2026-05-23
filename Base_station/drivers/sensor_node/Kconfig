@@ -1,0 +1,7 @@
+config SENSOR_NODE
+  bool "Custom SENSOR_NODE driver"
+  default y
+  depends on UART
+  depends on DT_HAS_SENSOR_NODE_ENABLED
+  help
+    Enable support for the custom SENSOR_NODE distance sensor driver.
