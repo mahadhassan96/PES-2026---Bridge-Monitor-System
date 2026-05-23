@@ -1,4 +1,4 @@
 # Use the full path here as well
-source "fsr_4xx/Kconfig"
-source "adxl_313/Kconfig"
+rsource "fsr_4xx/Kconfig"
 rsource "vl53l1x/Kconfig"
+rsource "adxl_313/Kconfig"

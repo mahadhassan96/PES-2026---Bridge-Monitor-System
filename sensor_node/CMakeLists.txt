@@ -9,11 +9,7 @@ list(APPEND ZEPHYR_LIBRARY_EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(sensor_node)
 
-# 3. MANUALLY add your drivers folder
-# This tells CMake to go into 'drivers/' and look for another CMakeLists.txt
-#add_subdirectory(drivers)
-
 # Add source files
 FILE(GLOB SRC_FILES "src/*.c" "ISR/*.c")
 target_sources(app PRIVATE ../coms/coms.c ${SRC_FILES})
-target_include_directories(app PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+target_include_directories(app PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/../include)

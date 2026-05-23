@@ -70,7 +70,7 @@ static void adxl_313_work_handler(struct k_work *work) {
     struct adxl_313_data *data = CONTAINER_OF(work, struct adxl_313_data, work);
     uint8_t status;
     
-    if (sensor_read_reg(ADDRESS, INT_SOURCE, &status, 1) != 0) {
+    if (sensor_read_reg_adxl313(ADDRESS, INT_SOURCE, &status,1) != 0) {
         return;
     }
 
@@ -81,7 +81,7 @@ static void adxl_313_work_handler(struct k_work *work) {
 
 static void adxl_313_gpio_callback(const struct device *port,
                                   struct gpio_callback *cb, uint32_t pins) {
-    printk("GPIO CALLBACK FIRED\n");
+    //printk("GPIO CALLBACK FIRED\n");
     struct adxl_313_data *data = CONTAINER_OF(cb, struct adxl_313_data, gpio_cb);
     k_work_submit(&data->work); 
 }
@@ -90,7 +90,7 @@ static int adxl_313_sample_fetch(const struct device *dev, enum sensor_channel c
     struct adxl_313_data *data = dev->data;
     uint8_t buffer[6];
 
-    int ret = sensor_read_reg(ADDRESS, XYZ_DATA, buffer, 6);
+    int ret = sensor_read_reg_adxl313(ADDRESS, XYZ_DATA, buffer, 6);
     data->x = buffer[0] | (buffer[1] << 8);
     data->y = buffer[2] | (buffer[3] << 8);
     data->z = buffer[4] | (buffer[5] << 8);
@@ -147,7 +147,7 @@ static int adxl_313_init(const struct device *dev){
     
     k_work_init(&data->work, adxl_313_work_handler);
 
-    if(sensor_read_reg(ADDRESS, DEVID_0, dev_id, 2) != I2C_OK){
+    if(sensor_read_reg_adxl313(ADDRESS, DEVID_0, dev_id, 2) != I2C_OK){
         return I2C_ERROR_NOT_READY;
     }
 
@@ -162,23 +162,23 @@ static int adxl_313_init(const struct device *dev){
     uint8_t status;
     uint8_t act_inact_ctl = 0x70;
 
-    if(sensor_write_reg(ADDRESS, DATA_FORMAT, &data_format, 1) != I2C_OK){  return I2C_ERROR_BUS;}
-    if(sensor_write_reg(ADDRESS, FIFO_CTL, &fifo_ctl, 1) != I2C_OK){  return I2C_ERROR_BUS;}
-    if(sensor_write_reg(ADDRESS, THRESH_ACT, &thresh_act, 1) != I2C_OK){  return I2C_ERROR_BUS;}
-    if(sensor_write_reg(ADDRESS, ACT_INACT_CTL, &act_inact_ctl, 1) != I2C_OK){  return I2C_ERROR_BUS;}
-    if(sensor_write_reg(ADDRESS, INT_ENABLE, &int_enable, 1) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_adxl313(ADDRESS, DATA_FORMAT, &data_format,1) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_adxl313(ADDRESS, FIFO_CTL, &fifo_ctl,1) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_adxl313(ADDRESS, THRESH_ACT, &thresh_act,1) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_adxl313(ADDRESS, ACT_INACT_CTL, &act_inact_ctl,1) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_adxl313(ADDRESS, INT_ENABLE, &int_enable,1) != I2C_OK){  return I2C_ERROR_BUS;}
     
-    sensor_read_reg(ADDRESS, XYZ_DATA, buffer, 6);
+    sensor_read_reg_adxl313(ADDRESS, XYZ_DATA, buffer, 6);
     k_msleep(2);
-    if(sensor_write_reg(ADDRESS, POWER_CTL, &power_ctl, 1) != I2C_OK){  return I2C_ERROR_BUS;}
+    if(sensor_write_reg_adxl313(ADDRESS, POWER_CTL, &power_ctl,1) != I2C_OK){  return I2C_ERROR_BUS;}
 
     k_msleep(20);
 
-    sensor_read_reg(ADDRESS, INT_ENABLE, &status, 1);
+    sensor_read_reg_adxl313(ADDRESS, INT_ENABLE, &status,1);
     //printk("int enable: %d\n", status);
-    sensor_read_reg(ADDRESS, POWER_CTL, &status, 1);
+    sensor_read_reg_adxl313(ADDRESS, POWER_CTL, &status,1);
     //printk("POWER CTL: %d\n", status);
-    sensor_read_reg(ADDRESS, INT_SOURCE, &status, 1);
+    sensor_read_reg_adxl313(ADDRESS, INT_SOURCE, &status,1);
 
     k_msleep(100);
 

@@ -1,25 +1,9 @@
 #include <zephyr/dt-bindings/gpio/gpio.h>
+
 / {
     chosen {
             zephyr,console = &cdc_acm_uart0;
             zephyr,shell-uart = &cdc_acm_uart0;
-    };
-
-    zephyr,user {
-        io-channels = <&adc 0>;
-    };
-
-    fsr_sensor: fsr_4xx {
-        compatible = "fsr_4xx";
-        io-channels = <&adc 0>;
-        resolution = <12>;  /* RP2350 usually uses 12-bit ADC */
-        status = "okay";
-    };
-};
-
-&zephyr_udc0 {
-        cdc_acm_uart0: cdc_acm_uart0 {
-        compatible = "zephyr,cdc-acm-uart";
     };
 };
 
@@ -28,6 +12,25 @@
     current-speed = <115200>;
     pinctrl-0 = <&uart0_default>;
     pinctrl-names = "default";
+};
+
+/ {
+    zephyr,user {
+        io-channels = <&adc 0>;
+    };
+
+    fsr_sensor: fsr_4xx {
+        compatible = "fsr_4xx";
+        io-channels = <&adc 0>;
+        resolution = <12>;
+        status = "okay";
+    };
+};
+
+&zephyr_udc0 {
+        cdc_acm_uart0: cdc_acm_uart0 {
+        compatible = "zephyr,cdc-acm-uart";
+    };
 };
 
 &pinctrl {
@@ -39,6 +42,20 @@
             pinmux = <UART0_RX_P1>;
             input-enable;
         };
+    };
+};
+
+&i2c0 {
+    status = "okay";
+
+    vl53l1x0: vl53l1x@29 {
+        compatible = "vl53l1x_st";
+        reg = <0x29>;
+        int-gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+        threshold-mm = <70>;
+        intermeasurement-period-ms = <80>;
+        sample-window-ms = <3000>;
+        status = "okay";
     };
 };
 

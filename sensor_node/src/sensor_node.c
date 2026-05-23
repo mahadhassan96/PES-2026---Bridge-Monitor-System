@@ -3,6 +3,8 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
+#include "vl53l1x.h"
+#include "isr.h"
 
 #define UART_NODE DT_NODELABEL(uart0)
 
@@ -10,28 +12,70 @@
 #define SENSOR_CHAN_FORCE SENSOR_CHAN_PRIV_START
 #endif
 
-const struct device *const acc_dev = DEVICE_DT_GET(DT_NODELABEL(adxl_313));
+static const struct device *const acc_dev = DEVICE_DT_GET(DT_NODELABEL(adxl_313));
 static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
 
-const struct device *const fsr_dev = DEVICE_DT_GET(DT_NODELABEL(fsr_sensor));
-
+static const struct device *const fsr_dev = DEVICE_DT_GET(DT_NODELABEL(fsr_sensor));
+static const struct device *tof = DEVICE_DT_GET(DT_NODELABEL(vl53l1x0));
 
 K_MSGQ_DEFINE(packet_queue, sizeof(packet_t *), QUEUE_SIZE, __alignof__(packet_t *));
 
 sensor_node_t sn;
 
+void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
+{
+    struct sensor_value accel[3];
+
+    sensor_sample_fetch(acc_dev);
+
+    sensor_channel_get(acc_dev, SENSOR_CHAN_ACCEL_XYZ, accel);
+
+    printk("Motion Detected! X: %d.%06d, Y: %d.%06d, Z: %d.%06d\n",
+           accel[0].val1, accel[0].val2,
+           accel[1].val1, accel[1].val2,
+           accel[2].val1, accel[2].val2);
+}
 
 void init(sensor_node_t *sn)
 {
-	if(!device_is_ready(acc_dev)) {
+    k_msleep(10000);
+	
+    if(!device_is_ready(acc_dev)) {
         printk("Sensor device not ready\n");
+        return;
     }
     else{
         printk("Sensor Init complete\n");
     }
+    
+    struct sensor_trigger trig = {
+        .type = SENSOR_TRIG_DELTA,    // "Delta" is often used for activity/motion
+        .chan = SENSOR_CHAN_ACCEL_XYZ,
+    };
+    
+    int ret = sensor_trigger_set(acc_dev, &trig, motion_handler);
+    
+    if (ret != 0) {
+        printk("Failed to set trigger: %d\n", ret);
+        return;
+    }
 
     if (!device_is_ready(uart_dev))
     {
+        return;
+    }
+
+    if (!device_is_ready(tof)) {
+        printk("VL53L1X not ready\n");
+        return;
+    }
+
+    if (sensor_interrupt_init() < 0) {
+        printk("failed to init ToF interrupt\n");
+    }
+
+    if (vl53l1x_start_continuous(tof) < 0) {
+        printk("failed to start continuous mode\n");
         return;
     }
 }
@@ -88,6 +132,15 @@ void process_packet(packet_t *packet)
 
             int readings[5] = {accel[0].val1, accel[1].val1, accel[2].val1, force.val1, 88};
             send_response(RESPONSE, (uint8_t *)readings, sizeof(readings));
+            
+            int distance = avgSampleReading(tof);
+
+            if (distance < 0) {
+                printk("sample fetch failed\n");
+            } else {
+                printk("Distance: %d mm\n", distance);
+            }
+            
             break;
         }
 
