@@ -1,0 +1,8 @@
+config VL53L1X_ST
+  bool "Custom VL53L1X time-of-flight sensor driver"
+  default y
+  depends on I2C
+  depends on GPIO
+  depends on DT_HAS_VL53L1X_ST_ENABLED
+  help
+    Enable support for the custom VL53L1X distance sensor driver.

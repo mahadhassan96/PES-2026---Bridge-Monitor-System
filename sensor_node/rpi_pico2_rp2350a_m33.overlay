@@ -1,7 +1,19 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
 / {
     chosen {
             zephyr,console = &cdc_acm_uart0;
             zephyr,shell-uart = &cdc_acm_uart0;
+    };
+
+    zephyr,user {
+        io-channels = <&adc 0>;
+    };
+
+    fsr_sensor: fsr_4xx {
+        compatible = "fsr_4xx";
+        io-channels = <&adc 0>;
+        resolution = <12>;  /* RP2350 usually uses 12-bit ADC */
+        status = "okay";
     };
 };
 
@@ -27,20 +39,6 @@
             pinmux = <UART0_RX_P1>;
             input-enable;
         };
-    };
-};
-
-/ {
-zephyr,user {
-    /* This creates a handle for our code to find */
-    io-channels = <&adc 0>; 
-};
-
-    fsr_sensor: fsr_4xx {
-        compatible = "fsr_4xx";
-        io-channels = <&adc 0>;
-        resolution = <12>;  /* RP2350 usually uses 12-bit ADC */
-        status = "okay";
     };
 };
 
