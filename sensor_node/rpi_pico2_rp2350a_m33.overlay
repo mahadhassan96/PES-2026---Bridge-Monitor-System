@@ -7,17 +7,30 @@
     };
 };
 
-&zephyr_udc0 {
-        cdc_acm_uart0: cdc_acm_uart0 {
-        compatible = "zephyr,cdc-acm-uart";
-    };
-};
-
 &uart0 {
     status = "okay";
     current-speed = <115200>;
     pinctrl-0 = <&uart0_default>;
     pinctrl-names = "default";
+};
+
+/ {
+    zephyr,user {
+        io-channels = <&adc 0>;
+    };
+
+    fsr_sensor: fsr_4xx {
+        compatible = "fsr_4xx";
+        io-channels = <&adc 0>;
+        resolution = <12>;
+        status = "okay";
+    };
+};
+
+&zephyr_udc0 {
+        cdc_acm_uart0: cdc_acm_uart0 {
+        compatible = "zephyr,cdc-acm-uart";
+    };
 };
 
 &pinctrl {
@@ -29,20 +42,6 @@
             pinmux = <UART0_RX_P1>;
             input-enable;
         };
-    };
-};
-
-/ {
-    zephyr,user {
-        /* This creates a handle for our code to find */
-        io-channels = <&adc 0>; 
-    };
-
-    fsr_sensor: fsr_4xx {
-        compatible = "fsr_4xx";
-        io-channels = <&adc 0>;
-        resolution = <12>;  /* RP2350 usually uses 12-bit ADC */
-        status = "okay";
     };
 };
 

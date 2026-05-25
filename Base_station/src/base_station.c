@@ -295,12 +295,32 @@ void request_data()
 
 void normal_handler(base_station_t *bs, bool state_change)
 {
-    // Start the timer interval.
     toggle_timer(state_change, true);
-
     turn_off_leds();
-    // Request data from sensors.
-    request_data();
+
+    const struct device *sn_dev = device_get_binding("SN_sensor");
+    printk("[BS] sn_dev = %p\n", sn_dev);
+    if (!device_is_ready(sn_dev))
+    {
+        printk("[BS] sensor_node device not ready\n");
+        return;
+    }
+
+    if (sensor_sample_fetch(sn_dev) != 0)
+    {
+        printk("[BS] fetch failed\n");
+        return;
+    }
+
+    struct sensor_value dist, force, accel_x, accel_y, accel_z;
+    sensor_channel_get(sn_dev, SENSOR_CHAN_DISTANCE, &dist);
+    sensor_channel_get(sn_dev, SENSOR_CHAN_FORCE_N, &force);
+    sensor_channel_get(sn_dev, SENSOR_CHAN_ACCEL_X, &accel_x);
+    sensor_channel_get(sn_dev, SENSOR_CHAN_ACCEL_Y, &accel_y);
+    sensor_channel_get(sn_dev, SENSOR_CHAN_ACCEL_Z, &accel_z);
+
+    printk("[BS normal_handler()] dist=%d force=%d accel=(%d, %d, %d)\n",
+           dist.val1, force.val1, accel_x.val1, accel_y.val1, accel_z.val1);
 }
 
 void turn_off_leds()
@@ -436,10 +456,32 @@ void process_packet(packet_t *packet)
     {
     case RESPONSE:
     {
-        print_packet("BASE STATION RESPONSE", packet);
+        if (bs.logging)
+        {
+            print_packet("BASE STATION RESPONSE", packet);
+        }
+
+        if (packet->data != NULL && packet->data_len == sizeof(int) * 5)
+        {
+            int *readings = (int *)packet->data;
+            sensor_node_store_response(
+                readings[4], // dist
+                readings[3], // force
+                readings[0], // accel_x
+                readings[1], // accel_y
+                readings[2]  // accel_z
+            );
+
+            printk("[BS] stored: dist=%d force=%d accel=(%d, %d, %d)\n",
+                   readings[4], readings[3], readings[0], readings[1], readings[2]);
+        }
+        else
+        {
+            printk("[BS] RESPONSE payload missing or wrong size\n");
+        }
+
         break;
     }
-
     case EMERGENCY:
     {
         print_packet("BASE STATION EMERGENCY", packet);
@@ -562,7 +604,6 @@ void uart_rx_task(void)
         switch (state) {
         case 0: // WAIT_SYNC
             if (byte == SYNC_BYTE) {
-                printk("[RX] SYNC found\n");
                 payload_idx = 0;
                 state = 1;
             }
@@ -575,6 +616,7 @@ void uart_rx_task(void)
 
         case 2: // WAIT_LENGTH
             payload_len = byte;
+
             if (payload_len == 0)
             {
                 // Zero-payload packet — hand it off immediately
@@ -602,7 +644,6 @@ void uart_rx_task(void)
             break;
 
         case 3: // WAIT_PAYLOAD
-            printk("[RX] PAYLOAD byte[%u]=0x%02X\n", payload_idx, byte);
             payload[payload_idx++] = byte;
             if (payload_idx >= payload_len)
             {

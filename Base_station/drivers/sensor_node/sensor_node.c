@@ -10,16 +10,21 @@ K_SEM_DEFINE(response_sem, 0, 1);
 
 /* Single snapshot of latest sensor data — overwritten on every fetch */
 static sensor_node_data_t driver_data = {
-    .dist             = 0.0f,
-    .force            = 0.0f,
-    .last_fetch_time  = 0,
+    .dist            = 0,
+    .force           = 0,
+    .accel_x         = 0,
+    .accel_y         = 0,
+    .accel_z         = 0,
+    .last_fetch_time = 0,
 };
 
-/* ── Called by packet_handler_task when RESPONSE arrives ────────────────── */
-void sensor_node_store_response(float dist, float force)
+void sensor_node_store_response(int dist, int force, int accel_x, int accel_y, int accel_z)
 {
     driver_data.dist            = dist;
     driver_data.force           = force;
+    driver_data.accel_x         = accel_x;
+    driver_data.accel_y         = accel_y;
+    driver_data.accel_z         = accel_z;
     driver_data.last_fetch_time = k_uptime_get();
     k_sem_give(&response_sem);
 }
@@ -42,8 +47,8 @@ static int sensor_node_sample_fetch(const struct device *dev, enum sensor_channe
 
 /* ── Zephyr Sensor API: get ─────────────────────────────────────────────── */
 static int sensor_node_channel_get(const struct device *dev,
-                           enum sensor_channel chan,
-                           struct sensor_value *val)
+                                   enum sensor_channel chan,
+                                   struct sensor_value *val)
 {
     if (driver_data.last_fetch_time == 0) {
         printk("[DRIVER] get called before fetch\n");
@@ -52,11 +57,28 @@ static int sensor_node_channel_get(const struct device *dev,
 
     switch (chan) {
     case SENSOR_CHAN_DISTANCE:
-        sensor_value_from_double(val, (double)driver_data.dist);
+        val->val1 = driver_data.dist;
+        val->val2 = 0;
         break;
 
     case SENSOR_CHAN_FORCE_N:
-        sensor_value_from_double(val, (double)driver_data.force);
+        val->val1 = driver_data.force;
+        val->val2 = 0;
+        break;
+
+    case SENSOR_CHAN_ACCEL_X:
+        val->val1 = driver_data.accel_x;
+        val->val2 = 0;
+        break;
+
+    case SENSOR_CHAN_ACCEL_Y:
+        val->val1 = driver_data.accel_y;
+        val->val2 = 0;
+        break;
+
+    case SENSOR_CHAN_ACCEL_Z:
+        val->val1 = driver_data.accel_z;
+        val->val2 = 0;
         break;
 
     default:

@@ -1,6 +1,6 @@
 #include "vl53l1x.h"
 #define DT_DRV_COMPAT vl53l1x_st
-#define READ_TIMEOUT_MS 2000
+#define READ_TIMEOUT_MS 10000
 
 typedef enum {
     SHORT_MODE,
@@ -76,6 +76,7 @@ static const uint32_t TimingGuard = 4528;
 
 static int vl53l1x_init(const struct device *dev)
 {
+    printk("start init\n");
     struct vl53l1x_data *data = dev->data;
     const struct vl53l1x_config *cfg = dev->config;
 
@@ -88,11 +89,17 @@ static int vl53l1x_init(const struct device *dev)
     memset(&data->reading_data, 0, sizeof(data->reading_data));
     memset(&data->results, 0, sizeof(data->results));
 
-    if(sensor_write_reg_u8(cfg->i2c.addr, SOFT_RESET, 0x00) == I2C_OK)
+    //printk("start reset\n");
+    int res = sensor_write_reg_u8(cfg->i2c.addr, SOFT_RESET, 0x00);
+    if(res == I2C_OK)
     {
        k_usleep(100); 
        sensor_write_reg_u8(cfg->i2c.addr, SOFT_RESET, 0x01); 
        k_usleep(100); 
+    }
+    else{
+        //printk("reset failed %d\n", res);
+        return -1;
     }
 
     setTimeout(dev, READ_TIMEOUT_MS);
@@ -103,6 +110,7 @@ static int vl53l1x_init(const struct device *dev)
         if (isTimeoutExpired(dev))
         {
             /// Note: we can Handle timeout with handshake later.
+            //printk("timeout failed\n");
             return -1;
         }
     }
@@ -151,8 +159,10 @@ static int vl53l1x_init(const struct device *dev)
 
     if (vl53l1x_set_distance_threshold_interrupt(dev) < 0) {
         return -1;
+        //printk("thresh failed\n");
     }
 
+    //printk("end init\n");
     return 0;
 }
 

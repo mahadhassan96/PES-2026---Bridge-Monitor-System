@@ -9,9 +9,15 @@
 
 /* Data stored by fetch, read by get */
 typedef struct {
-    float dist;
-    float force;
-    int64_t last_fetch_time;   /* 0 means fetch never called */
+    int dist;
+    int force;
+    int accel_x;
+    int accel_y;
+    int accel_z;
+    int64_t last_fetch_time;
 } sensor_node_data_t;
+
+/* Called by packet_handler_task when RESPONSE arrives */
+void sensor_node_store_response(int dist, int force, int accel_x, int accel_y, int accel_z);
 
 #endif

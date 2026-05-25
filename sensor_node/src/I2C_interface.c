@@ -3,41 +3,68 @@
 #include <zephyr/devicetree.h>
 #include <string.h>
 
-#define SENSOR_I2C_NODE DT_NODELABEL(i2c1)
-static const struct device *g_i2c_dev = DEVICE_DT_GET(SENSOR_I2C_NODE);
+#define SENSOR_I2C_NODE_0 DT_NODELABEL(i2c0)
+#define SENSOR_I2C_NODE_1 DT_NODELABEL(i2c1)
+static const struct device *g_i2c_dev_0 = DEVICE_DT_GET(SENSOR_I2C_NODE_0);
+static const struct device *g_i2c_dev_1 = DEVICE_DT_GET(SENSOR_I2C_NODE_1);
 
 i2c_status sensor_write_reg(uint8_t device_addr, uint16_t reg_addr, const uint8_t *data, uint16_t length)
 {
     uint8_t reg_buf[2 + 4]; // 2 bytes for reg and 3 for data, adjust if needed
-    if (!device_is_ready(g_i2c_dev)) {
+    if (!device_is_ready(g_i2c_dev_0)) {
         return I2C_ERROR_NOT_READY;
     }
     reg_buf[0] = reg_addr >> 8; 
     reg_buf[1] = reg_addr & 0xFF;
     memcpy(&reg_buf[2], data, length);
 
-    return (i2c_write(g_i2c_dev, reg_buf, length + 2, device_addr) == 0)? I2C_OK : I2C_ERROR_BUS;
+    return (i2c_write(g_i2c_dev_0, reg_buf, length + 2, device_addr) == 0)? I2C_OK : I2C_ERROR_BUS;
 }
 
-i2c_status sensor_read_reg_length(uint8_t device_addr, uint16_t reg_addr, uint8_t *data, uint8_t length)
+i2c_status sensor_write_reg_adxl313(uint8_t device_addr, uint16_t reg_addr, const uint8_t *data, uint16_t length)
 {
-    uint8_t reg_buf[1 + length];
-    reg_buf[0] = reg_addr;
-    if (!device_is_ready(g_i2c_dev)) {
+    uint8_t tx_buf[1+length]; // 1 byte for reg 3 for data, adjust if needed
+    if (!device_is_ready(g_i2c_dev_1)) {
         return I2C_ERROR_NOT_READY;
     }
+    tx_buf[0] = reg_addr;
+    memcpy(&tx_buf[1], data, length);
 
-    return (i2c_write_read(g_i2c_dev, device_addr, reg_buf, sizeof(reg_buf), data, length) == 0)? I2C_OK : I2C_ERROR_BUS;
+    /*for(int i = 0; i < length+1; i++){
+        printk("%d ", tx_buf[i]);
+    }*/
+
+    //printk("\n");
+
+    return (i2c_write(g_i2c_dev_1, tx_buf, length+1, device_addr) == 0)? I2C_OK : I2C_ERROR_BUS;
 }
 
 i2c_status sensor_read_reg(uint8_t device_addr, uint16_t reg_addr, uint8_t *data, uint16_t length)
 {
     uint8_t reg_buf[2] = { reg_addr >> 8, reg_addr & 0xFF };
-    if (!device_is_ready(g_i2c_dev)) {
+    if (!device_is_ready(g_i2c_dev_0)) {
         return I2C_ERROR_NOT_READY;
     }
 
-    return (i2c_write_read(g_i2c_dev, device_addr, reg_buf, sizeof(reg_buf), data, length) == 0)? I2C_OK : I2C_ERROR_BUS;
+    return (i2c_write_read(g_i2c_dev_0, device_addr, reg_buf, sizeof(reg_buf), data, length) == 0)? I2C_OK : I2C_ERROR_BUS;
+}
+
+i2c_status sensor_read_reg_adxl313(uint8_t device_addr, uint8_t reg_addr, uint8_t *data, uint16_t length)
+{
+    if (!device_is_ready(g_i2c_dev_1)) {
+        return I2C_ERROR_NOT_READY;
+    }
+
+    return (i2c_write_read(g_i2c_dev_1, device_addr, &reg_addr, sizeof(reg_addr), data, length) == 0)? I2C_OK : I2C_ERROR_BUS;
+}
+
+i2c_status sensor_read_reg_cont(uint8_t device_addr, uint16_t reg_addr, uint8_t *data, uint16_t length)
+{
+    if (!device_is_ready(g_i2c_dev_0)) {
+        return I2C_ERROR_NOT_READY;
+    }
+
+    return (i2c_write_read(g_i2c_dev_0, device_addr, &reg_addr, sizeof(reg_addr), data, length) == 0)? I2C_OK : I2C_ERROR_BUS;
 }
 
 i2c_status sensor_write_reg_u8(uint8_t device_addr, uint16_t reg_addr, uint8_t data)

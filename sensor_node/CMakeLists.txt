@@ -9,17 +9,7 @@ list(APPEND ZEPHYR_LIBRARY_EXTRA_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(sensor_node)
 
-set(OPENOCD "openocd")
-set(OPENOCD_DEFAULT_PATH "/usr/local/share/openocd/scripts")
-
-target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include )
-
-file(GLOB SRC_FILES
-    "src/main.c"
-    "src/I2C_Interface.c"
-    "src/thresholds.c"
-    "ISR/*.c"
-    "../coms/coms.c"
-)
-
-target_sources(app PRIVATE ${SRC_FILES})
+# Add source files
+FILE(GLOB SRC_FILES "src/*.c" "ISR/*.c")
+target_sources(app PRIVATE ../coms/coms.c ${SRC_FILES})
+target_include_directories(app PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/../include)
