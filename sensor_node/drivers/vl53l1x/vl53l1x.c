@@ -1,6 +1,6 @@
 #include "vl53l1x.h"
 #define DT_DRV_COMPAT vl53l1x_st
-#define READ_TIMEOUT_MS 10000
+#define READ_TIMEOUT_MS 500
 
 typedef enum {
     SHORT_MODE,

@@ -3,7 +3,9 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include "drivers/sensor_node/sensor_node.h"
-// ── Queues ──────────────────────────────────────────────────────────────────
+#include <stdint.h>
+
+// Queues
 // Create an event queue.
 K_MSGQ_DEFINE(event_queue, sizeof(base_station_event_t), QUEUE_SIZE, __alignof__(base_station_event_t));
 
@@ -74,78 +76,6 @@ void init_led(const struct gpio_dt_spec *spec)
         return;
     }
 }
-static void uart_isr_old(const struct device *dev, void *user_data)
-{
-    static uint8_t packet_type = 0;
-    static uint8_t payload_len = 0;
-    static uint8_t payload_index = 0;
-    static uint8_t payload[64];
-    static int state = 0;
-
-    if (!uart_irq_update(dev)) { return; }
-    if (!uart_irq_rx_ready(dev)) { return; }
-
-    uint8_t byte;
-    uart_fifo_read(dev, &byte, 1);
-
-    switch (state)
-    {
-        case 0: // WAIT_SYNC
-            if (byte == SYNC_BYTE)
-            {
-                state = 1;
-                payload_index = 0;
-            }
-            break;
-
-        case 1: // WAIT_TYPE
-            packet_type = byte;
-            state = 2;
-            break;
-
-        case 2: // WAIT_LENGTH
-            payload_len = byte;
-            if (payload_len == 0)
-            {
-                packet_t *packet = build_packet(packet_type, NULL, 0);
-                if (packet)
-                {
-                    process_packet(packet);
-                    destroy_packet(packet);
-                }
-                state = 0;
-            }
-            else if (payload_len > sizeof(payload))
-            {
-                state = 0;
-            }
-            else
-            {
-                payload_index = 0;
-                state = 3;
-            }
-            break;
-
-        case 3: // WAIT_PAYLOAD
-            payload[payload_index++] = byte;
-            if (payload_index >= payload_len)
-            {
-                packet_t *packet = build_packet(packet_type, payload, payload_len);
-                if (packet)
-                {
-                    process_packet(packet);
-                    destroy_packet(packet);
-                }
-                state = 0;
-            }
-            break;
-
-        default:
-            state = 0;
-            break;
-    }
-}
-
 
 // ISR, enqueue Bytes in uart_byte_queue
 static void uart_isr(const struct device *dev, void *user_data)
@@ -287,7 +217,7 @@ void request_data()
     }
     else
     {
-        printk("[DEBUG] NOTHING IS BEING SENT!\n");
+        printk("BASE STATION - NOTHING IS BEING SENT!\n");
     }
 
     k_sleep(K_MSEC(1000));
@@ -299,7 +229,7 @@ void normal_handler(base_station_t *bs, bool state_change)
     turn_off_leds();
 
     const struct device *sn_dev = device_get_binding("SN_sensor");
-    printk("[BS] sn_dev = %p\n", sn_dev);
+    // printk("[BS] sn_dev = %p\n", sn_dev);
     if (!device_is_ready(sn_dev))
     {
         printk("[BS] sensor_node device not ready\n");
@@ -354,10 +284,10 @@ void worker_task()
         if (events[0].state == K_POLL_STATE_SIGNALED)
         {
 
-            if (bs.logging)
-            {
-                printk("[DEBUG] Received work signal!\n");
-            }
+            // if (bs.logging)
+            // {
+            //     printk("[DEBUG] Received work signal!\n");
+            // }
 
             // Check result & reset for the next signal.
             k_poll_signal_check(&poll_signal, &signaled, &result);
@@ -456,25 +386,24 @@ void process_packet(packet_t *packet)
     {
     case RESPONSE:
     {
-        if (bs.logging)
-        {
-            print_packet("BASE STATION RESPONSE", packet);
-        }
+        // if (bs.logging)
+        // {
+        //     print_packet("BASE STATION RESPONSE", packet);
+        // }
 
-        if (packet->data != NULL && packet->data_len == sizeof(int) * 5)
+        if (packet->data != NULL && packet->data_len == sizeof(int32_t) * 5)
         {
-            int *readings = (int *)packet->data;
+            int32_t *readings = (int32_t *)packet->data;
             sensor_node_store_response(
-                readings[4], // dist
-                readings[3], // force
-                readings[0], // accel_x
-                readings[1], // accel_y
-                readings[2]  // accel_z
+                readings[4], /* dist mm    */
+                readings[3], /* force mN   */
+                readings[0], /* accel X mg */
+                readings[1], /* accel Y mg */
+                readings[2]  /* accel Z mg */
             );
-
-            printk("[BS] stored: dist=%d force=%d accel=(%d, %d, %d)\n",
-                   readings[4], readings[3], readings[0], readings[1], readings[2]);
-        }
+        //     printk("[BS] dist=%d mm  force=%d mN  accel=(%d, %d, %d) mg\n",
+        //            readings[4], readings[3], readings[0], readings[1], readings[2]);
+         }
         else
         {
             printk("[BS] RESPONSE payload missing or wrong size\n");
@@ -507,84 +436,6 @@ void process_packet(packet_t *packet)
     }
 }
 
-void uart_read_task_old()
-{
-    uint8_t received_byte;
-    uint8_t packet_type = 0;
-    uint8_t payload_len = 0;
-    uint8_t payload_index = 0;
-    uint8_t payload[64];
-    int state = 0;
-
-    while (true)
-    {
-        if (uart_poll_in(uart_dev, &received_byte) == 0)
-        {
-            switch (state)
-            {
-            case 0: // WAIT_SYNC
-                if (received_byte == SYNC_BYTE)
-                {
-                    state = 1;
-                    payload_index = 0;
-                }
-                break;
-
-            case 1: // WAIT_TYPE
-                packet_type = received_byte;
-                state = 2;
-                break;
-
-            case 2: // WAIT_LENGTH
-                payload_len = received_byte;
-                if (payload_len == 0)
-                {
-                    packet_t *packet = build_packet(packet_type, NULL, 0);
-                    if (packet)
-                    {
-                        if (bs.logging)
-                            print_packet("BASE STATION uart_read_task", packet);
-                        process_packet(packet);
-                        destroy_packet(packet);
-                    }
-                    state = 0;
-                }
-                else if (payload_len > sizeof(payload))
-                {
-                    printk("[RX][ERROR] Payload too large (%d) — dropping\n", payload_len);
-                    state = 0;
-                }
-                else
-                {
-                    payload_index = 0;
-                    state = 3;
-                }
-                break;
-
-            case 3: // WAIT_PAYLOAD
-                payload[payload_index++] = received_byte;
-                if (payload_index >= payload_len)
-                {
-                    packet_t *packet = build_packet(packet_type, payload, payload_len);
-                    if (packet)
-                    {
-                        if (bs.logging)
-                            print_packet("BASE STATION uart_read_task", packet);
-                        process_packet(packet);
-                        destroy_packet(packet);
-                    }
-                    state = 0;
-                }
-                break;
-
-            default:
-                state = 0;
-                break;
-            }
-        }
-        k_yield();
-    }
-}
 
 //uart_rx_task: frames bytes - complete packetS
 void uart_rx_task(void)
@@ -673,9 +524,9 @@ void packet_handler_task(void)
 
     while (true) {
         if (k_msgq_get(&packet_queue, &pkt, K_FOREVER) == 0) {
-            if (bs.logging) {
-                print_packet("BASE STATION", pkt);
-            }
+            // if (bs.logging) {
+            //     print_packet("BASE STATION", pkt);
+            // }
             process_packet(pkt);
             destroy_packet(pkt);
         }
@@ -785,4 +636,3 @@ K_THREAD_DEFINE(fsm_tid, STACK_SIZE, fsm_task, NULL, NULL, NULL, UPDATE_PRIO, 0,
 K_THREAD_DEFINE(worker_tid, STACK_SIZE, worker_task, NULL, NULL, NULL, WORKER_PRIO, 0, 0);
 K_THREAD_DEFINE(rx_tid, STACK_SIZE, uart_rx_task, NULL, NULL, NULL, READ_PRIO, 0, 0);
 K_THREAD_DEFINE(handler_tid, STACK_SIZE, packet_handler_task, NULL, NULL, NULL, HANDLER_PRIO,  0, 0);
-// K_THREAD_DEFINE(uart_read_tid, STACK_SIZE, uart_read_task, NULL, NULL, NULL, READ_PRIO, 0, 0);

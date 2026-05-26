@@ -97,15 +97,12 @@ void send_packet(const struct device *uart_dev, packet_t *packet)
     // Send packet start byte.
     uint8_t sync = SYNC_BYTE;
     uart_send_bytes(uart_dev, &sync, 1);
-    k_sleep(K_MSEC(1));
 
     // Send the packet type.
     uart_send_bytes(uart_dev, (uint8_t *)&packet->type, 1);
-    k_sleep(K_MSEC(1));
 
     // then Send the data length
     uart_send_bytes(uart_dev, (uint8_t *)&packet->data_len, 1);
-    k_sleep(K_MSEC(1));
 
     // Finally send the data (if there is data).
     if (packet->data_len > 0)
@@ -202,24 +199,23 @@ void print_packet(const char *tag, packet_t *packet)
         type_str,
         packet->type,
         packet->type,
-        packet->data_len
-    );
+        packet->data_len);
 
     if (packet->data_len == 0 || packet->data == NULL)
     {
         printk("<EMPTY>\n");
     }
     /* Check if the packet actually contains our 5-integer telemetry payload */
-    else if ((packet->type == RESPONSE || packet->type == EMERGENCY) && 
-             (packet->data_len == sizeof(int) * 5))
+    else if ((packet->type == RESPONSE || packet->type == EMERGENCY) &&
+             (packet->data_len == sizeof(int32_t) * 5))
     {
-        int *readings = (int *)packet->data;
+        int32_t *readings = (int32_t *)packet->data;
         printk("\n"
-               "  -> Accel X: %d\n"
-               "  -> Accel Y: %d\n"
-               "  -> Accel Z: %d\n"
-               "  -> FSR : %d\n"
-               "  -> DISTANCE: %d\n",
+               "  -> Accel X: %d mg\n"
+               "  -> Accel Y: %d mg\n"
+               "  -> Accel Z: %d mg\n"
+               "  -> FSR    : %d mN\n"
+               "  -> DISTANCE: %d mm\n",
                readings[0], readings[1], readings[2], readings[3], readings[4]);
     }
     /* Fallback layout: Print raw hex dump for control or malformed packets */
@@ -231,7 +227,7 @@ void print_packet(const char *tag, packet_t *packet)
         }
         printk("\n");
     }
-    
+
     printk("==================================================\n");
 }
 

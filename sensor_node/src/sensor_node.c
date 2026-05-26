@@ -5,12 +5,15 @@
 #include <zephyr/drivers/gpio.h>
 #include "vl53l1x.h"
 #include "isr.h"
+#include <stdint.h>
 
 #define UART_NODE DT_NODELABEL(uart0)
 
 #ifndef SENSOR_CHAN_FORCE
 #define SENSOR_CHAN_FORCE SENSOR_CHAN_PRIV_START
 #endif
+
+#define DEBUG 0
 
 static const struct device *const acc_dev = DEVICE_DT_GET(DT_NODELABEL(adxl_313));
 static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
@@ -30,29 +33,43 @@ void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
 
     sensor_channel_get(acc_dev, SENSOR_CHAN_ACCEL_XYZ, accel);
 
+    #if DEBUG
     printk("Motion Detected! X: %d.%06d, Y: %d.%06d, Z: %d.%06d\n",
            accel[0].val1, accel[0].val2,
            accel[1].val1, accel[1].val2,
            accel[2].val1, accel[2].val2);
+    #endif
 }
 
 void init(sensor_node_t *sn)
 {
     k_msleep(10000);
-	
-    if(!device_is_ready(acc_dev)) {
+
+    if (!device_is_ready(acc_dev))
+    {
         printk("Sensor device not ready\n");
         return;
     }
-    else{
+    else
+    {
         printk("Sensor Init complete\n");
     }
-    
+
+    #if DEBUG
+        struct sensor_value force;
+        sensor_sample_fetch(fsr_dev);
+        sensor_channel_get(fsr_dev, SENSOR_CHAN_FORCE, &force);
+        printk("FSR init reading: %d mN\n", force.val1);
+
+        int32_t tof_reading = vl53l1x_read(tof);
+        printk("ToF init reading: %d mm\n", tof_reading);
+    #endif
+
     struct sensor_trigger trig = {
-        .type = SENSOR_TRIG_DELTA,    // "Delta" is often used for activity/motion
+        .type = SENSOR_TRIG_DELTA, // "Delta" is often used for activity/motion
         .chan = SENSOR_CHAN_ACCEL_XYZ,
     };
-    
+
     int ret = sensor_trigger_set(acc_dev, &trig, motion_handler);
     
     if (ret != 0) {
@@ -70,9 +87,9 @@ void init(sensor_node_t *sn)
         return;
     }
 
-    // if (sensor_interrupt_init() < 0) {
-    //     printk("failed to init ToF interrupt\n");
-    // }
+    if (sensor_interrupt_init() < 0) {
+        printk("failed to init ToF interrupt\n");
+    }
 
     if (vl53l1x_start_continuous(tof) < 0) {
         printk("failed to start continuous mode\n");
@@ -116,35 +133,38 @@ void process_packet(packet_t *packet)
     switch (packet->type)
     {
 		/*Request of sensor data*/
-        case REQUEST:
+    case REQUEST:
+    {
+
+        struct sensor_value accel[3];
+        struct sensor_value force;
+
+        sensor_sample_fetch(acc_dev);
+        sensor_channel_get(acc_dev, SENSOR_CHAN_ACCEL_XYZ, accel);
+
+        sensor_sample_fetch(fsr_dev);
+        sensor_channel_get(fsr_dev, SENSOR_CHAN_FORCE, &force);
+
+        int32_t distance = avgSampleReading(tof);
+
+        int32_t readings[5] = {
+            (int32_t)(accel[0].val1 * 1000 + accel[0].val2 / 1000), /* accel X milli-g */
+            (int32_t)(accel[1].val1 * 1000 + accel[1].val2 / 1000), /* accel Y milli-g */
+            (int32_t)(accel[2].val1 * 1000 + accel[2].val2 / 1000), /* accel Z milli-g */
+            (int32_t)force.val1,                                    /* force mN        */
+            distance,                                               /* distance mm     */
+        };
+
+        #if DEBUG
+        for (int i = 0; i < 5; i++)
         {
-
-			struct sensor_value accel[3];
-   			struct sensor_value force;
-
-			// 1- Get the XYZ values
-			sensor_sample_fetch(acc_dev);
-			sensor_channel_get(acc_dev, SENSOR_CHAN_ACCEL_XYZ, accel);
-
-			//2- GET FSR
-			sensor_sample_fetch(fsr_dev);
-        	sensor_channel_get(fsr_dev, SENSOR_CHAN_FORCE, &force);
-
-            //3- Get distance reading
-            uint16_t distance = (int) avgSampleReading(tof);
-            int distance_old = avgSampleReading(tof);
-
-            uint readings[5] = {accel[0].val1, accel[1].val1, accel[2].val1, force.val1, distance};
-
-            for (int i = 0; i < 5; i++)
-            {
-                printf("SENSOR NODE readings BEFORE PACKET BUILDING[%d] = %d\n", i, readings[i]);
-            }
-
-            send_response(RESPONSE, (uint8_t *)readings, sizeof(readings));
-            
-            break;
+            printk("SENSOR NODE readings[%d] = %d\n", i, readings[i]);
         }
+        #endif
+
+        send_response(RESPONSE, (uint8_t *)readings, sizeof(readings));
+        break;
+    }
 
         case EMERGENCY_ACK:
         {
@@ -219,7 +239,6 @@ void uart_read_task()
                     state = 1;
                     payload_index = 0;
                 }
-
                 break;
             }
 
@@ -241,8 +260,9 @@ void uart_read_task()
                     if (packet)
                     {
                         k_msgq_put(&packet_queue, &packet, K_FOREVER);
+                        #if DEBUG
                         printk("[QUEUE] Items waiting: %d\n", k_msgq_num_used_get(&packet_queue));
-                        print_packet("SENSOR NODE CASE2 uart_read_task", packet);
+                        #endif
                     }
 
                     state = 0;
@@ -280,8 +300,6 @@ void uart_read_task()
                     if (packet)
                     {
                         k_msgq_put(&packet_queue, &packet, K_FOREVER);
-
-                        print_packet("SENSOR NODE CASE3 uart_read_task", packet);
                     }
 
                     state = 0;
