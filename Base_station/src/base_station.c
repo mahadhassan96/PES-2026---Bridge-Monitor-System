@@ -38,6 +38,8 @@ static const struct gpio_dt_spec accel_led_spec = GPIO_DT_SPEC_GET(ACCEL_LED_NOD
 
 static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
 
+static struct k_work_delayable emergency_ack_work;
+
 // Create callback struct for button ISRs.
 static struct gpio_callback reset_btn_cb_data;
 static struct gpio_callback logging_btn_cb_data;
@@ -89,6 +91,13 @@ static void uart_isr(const struct device *dev, void *user_data)
         k_msgq_put(&uart_byte_queue, &byte, K_NO_WAIT);
     }
 }
+
+void emergency_ack_handler(struct k_work *work)
+{
+    printk("[BS] 10 seconds passed. Sending EMERGENCY_ACK.\n");
+    send_response(EMERGENCY_ACK, NULL, 0);
+}
+
 // Sets up the initial state and performs necessary setup for the base station.
 void init(base_station_t *bs)
 {
@@ -119,6 +128,7 @@ void init(base_station_t *bs)
         uart_irq_callback_set(uart_dev, uart_isr);
         uart_irq_rx_enable(uart_dev);
 
+
         // Initialize LEDs.
         init_led(&force_led_spec);
         init_led(&dist_led_spec);
@@ -137,6 +147,10 @@ void init(base_station_t *bs)
 
     // Initialize the timer for periodic data requests.
     k_timer_init(&request_timer, timer_handler, NULL);
+
+    // Initialize the timer for periodic data requests and the delayable work item for the ACK
+    k_timer_init(&request_timer, timer_handler, NULL);
+    k_work_init_delayable(&emergency_ack_work, emergency_ack_handler);
 
     // Add boot complete event to the event queue.
     base_station_event_t evt = BOOT_COMPLETE;
@@ -194,8 +208,7 @@ void boot_handler(base_station_t *bs, bool state_change)
 
 void alert_handler(base_station_t *bs, bool state_change)
 {
-    normal_handler(bs, state_change);
-
+    toggle_timer(state_change, false);
     // TODO: Turn on LEDs based on which anomalies are detected.
 }
 
@@ -236,9 +249,9 @@ void normal_handler(base_station_t *bs, bool state_change)
         return;
     }
 
-    if (sensor_sample_fetch(sn_dev) != 0)
+    if (sensor_sample_fetch(sn_dev) != 0 && bs->curr_state != NORMAL)
     {
-        printk("[BS] fetch failed\n");
+        printk("[BS] fetch failed not in Normal\n");
         return;
     }
 
@@ -374,11 +387,28 @@ base_station_event_t get_next_state(base_station_state_t curr_state, base_statio
 
 static bool in_emergency = false;
 
+const char *packet_type_str(uint8_t type)
+{
+    switch (type)
+    {
+    case REQUEST: return "REQUEST";
+    case RESPONSE: return "RESPONSE";
+    case EMERGENCY: return "EMERGENCY";
+    case EMERGENCY_ACK: return "EMERGENCY_ACK";
+    case READY: return "READY";
+    default: return "UNKNOWN";
+    }
+}
+
+
+
 void process_packet(packet_t *packet)
 {
-    if (in_emergency && packet->type != SYN)
+    if (in_emergency && packet->type != READY)
     {
-        send_response(EMERGENCY_ACK, NULL, 0);
+        //send_response(EMERGENCY_ACK, NULL, 0);
+        printk("Already IN EMERGENCY PLEASE WAIT... TYPE: %s\n",
+               packet_type_str(packet->type));
         return;
     }
 
@@ -411,18 +441,19 @@ void process_packet(packet_t *packet)
 
         break;
     }
-    case EMERGENCY:
+case EMERGENCY:
     {
         print_packet("BASE STATION EMERGENCY", packet);
 
         in_emergency = true;
         base_station_event_t evt = ANOMALY_DETECTED;
         k_msgq_put(&event_queue, &evt, K_NO_WAIT);
-        send_response(EMERGENCY_ACK, NULL, 0); 
+
+        k_work_schedule(&emergency_ack_work, K_SECONDS(10)); 
         break;
     }
 
-    case SYN:
+    case READY:
     {
         in_emergency = false;
         base_station_event_t evt = ANOMALY_CLEARED;

@@ -169,16 +169,15 @@ packet_t *receive_packet(const struct device *uart_dev, uint8_t data_len)
 
 void print_packet(const char *tag, packet_t *packet)
 {
-    static const char *packet_type_names[] =
-    {
-        [SYN]           = "SYN",
-        [ACK]           = "ACK",
-        [REQUEST]       = "REQUEST",
-        [RESPONSE]      = "RESPONSE",
-        [EMERGENCY]     = "EMERGENCY",
-        [EMERGENCY_ACK] = "EMERGENCY_ACK"
+    static const char *packet_type_names[] = {
+        [SYN] = "SYN",
+        [ACK] = "ACK",
+        [READY] = "READY",
+        [REQUEST] = "REQUEST",
+        [RESPONSE] = "RESPONSE",
+        [EMERGENCY] = "EMERGENCY",
+        [EMERGENCY_ACK] = "EMERGENCY_ACK",
     };
-
     if (packet == NULL)
     {
         printk("\n[%s] ERROR: NULL packet\n", tag);

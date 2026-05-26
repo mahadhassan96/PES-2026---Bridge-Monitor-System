@@ -76,6 +76,8 @@ static void adxl_313_work_handler(struct k_work *work) {
 
     if ((status & 0x10) && data->data_ready_handler) {
         data->data_ready_handler(data->dev, data->data_ready_trig);
+        /* Clear interrupt by reading INT_SOURCE again */
+        sensor_read_reg_adxl313(ADDRESS, INT_SOURCE, &status, 1);
     }
 }
 

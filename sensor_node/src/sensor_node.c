@@ -21,24 +21,15 @@ static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
 static const struct device *const fsr_dev = DEVICE_DT_GET(DT_NODELABEL(fsr_sensor));
 static const struct device *tof = DEVICE_DT_GET(DT_NODELABEL(vl53l1x0));
 
+int dynamic_set_variable = 0;
+
 K_MSGQ_DEFINE(packet_queue, sizeof(packet_t *), QUEUE_SIZE, __alignof__(packet_t *));
 
 sensor_node_t sn;
 
 void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
 {
-    struct sensor_value accel[3];
-
-    sensor_sample_fetch(acc_dev);
-
-    sensor_channel_get(acc_dev, SENSOR_CHAN_ACCEL_XYZ, accel);
-
-    #if DEBUG
-    printk("Motion Detected! X: %d.%06d, Y: %d.%06d, Z: %d.%06d\n",
-           accel[0].val1, accel[0].val2,
-           accel[1].val1, accel[1].val2,
-           accel[2].val1, accel[2].val2);
-    #endif
+    sensor_emergency_isr();
 }
 
 void init(sensor_node_t *sn)
@@ -104,19 +95,26 @@ K_SEM_DEFINE(emergency_sem, 0, 1);
 
 void sensor_emergency_isr(void)
 {
-    k_sem_give(&emergency_sem);
+    // Only give the semaphore if we aren't already handling an emergency
+    if (!in_emergency) {
+        k_sem_give(&emergency_sem);
+    }
 }
-
 void emergency_task()
 {
     while (true)
     {
         k_sem_take(&emergency_sem, K_FOREVER);
-        in_emergency = true;
-        packet_t *packet = build_packet(EMERGENCY, NULL, 0);
-        if (packet)
-        {
-            k_msgq_put(&packet_queue, &packet, K_FOREVER);
+        
+        // Double-check flag to prevent queue spamming
+        if (!in_emergency) {
+            in_emergency = true;
+            packet_t *packet = build_packet(EMERGENCY, NULL, 0);
+            if (packet)
+            {
+                k_msgq_put(&packet_queue, &packet, K_FOREVER);
+            }
+            printk("EMERGENCY PACKET SENT\n");
         }
     }
 }
@@ -166,16 +164,21 @@ void process_packet(packet_t *packet)
         break;
     }
 
-        case EMERGENCY_ACK:
-        {
-            in_emergency = false;
-            packet_count = 0;
-            send_response(SYN, NULL, 0);
-            break;
-        }
+    // case CONFIG_DISTANCE:
 
-        default:
-            break;
+    // {
+    //     dynamic_set_variable = newvaueFromPacket
+
+    // }
+    case EMERGENCY_ACK:
+    {
+        in_emergency = false;
+        packet_count = 0;
+        send_response(READY, NULL, 0);
+        break;
+    }
+    default:
+        break;
     }
 }
 

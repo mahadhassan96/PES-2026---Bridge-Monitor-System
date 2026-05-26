@@ -60,16 +60,16 @@ void process_packet(packet_t *packet)
         break;
     }
 
-        case EMERGENCY_ACK:
-        {
-            in_emergency = false;
-            packet_count = 0;
-            send_response(SYN, NULL, 0);
-            break;
-        }
+    case EMERGENCY_ACK:
+    {
+        in_emergency = false;
+        packet_count = 0;
+        send_response(SYN, NULL, 0);
+        break;
+    }
 
-        default:
-            break;
+    default:
+        break;
     }
 }
 

@@ -48,5 +48,6 @@ void worker_task();
 
 void send_response(packet_type_t type, uint8_t *data, uint8_t data_len);
 
+void sensor_emergency_isr(void);
 
 #endif /* SENSOR_NODE_H */

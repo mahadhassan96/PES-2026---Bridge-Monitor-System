@@ -16,7 +16,7 @@
 
 #define WORK_INTERVAL_S 5
 
-#define STACK_SIZE 500
+#define STACK_SIZE 4096
 #define QUEUE_SIZE 16
 #define READ_PRIO 5
 #define UPDATE_PRIO 7

@@ -12,8 +12,8 @@
 typedef enum
 {
     SYN,
-    ACK,
-    // RESTART,
+    ACK,    
+    READY,
     REQUEST,
     RESPONSE,
     EMERGENCY,
