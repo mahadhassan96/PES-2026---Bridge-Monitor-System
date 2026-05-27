@@ -94,7 +94,6 @@ void worker_task()
     {
         if (k_msgq_get(&packet_queue, &packet, K_FOREVER) == 0)
         {
-            print_packet("SENSOR NODE worker_task", packet);
             process_packet(packet);
             destroy_packet(packet);
         }

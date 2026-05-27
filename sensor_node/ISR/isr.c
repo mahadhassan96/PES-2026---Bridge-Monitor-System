@@ -1,4 +1,6 @@
 #include "isr.h"
+#include "sensor_node.h"
+#include "debug_print.h"
 
 #define TOF_NODE DT_NODELABEL(vl53l1x0)
 
@@ -15,7 +17,7 @@ static void tof_gpio_isr(const struct device *dev, struct gpio_callback *cb, uin
 static void tof_work_handler(struct k_work *work)
 {
     uint16_t distance = vl53l1x_read(tof_dev);
-    printk("interrupt mode detected DISTANCE SENSOR: %u mm\n", distance);
+    APP_PRINT(SN_TAG, DEBUG_TAG, "Interrupt detected from ToF, distance: %u mm", distance);
     sensor_emergency_isr();
 }
 

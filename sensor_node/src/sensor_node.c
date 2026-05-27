@@ -1,5 +1,6 @@
 
-#include "../../include/sensor_node.h"
+#include "sensor_node.h"
+#include "debug_print.h"
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
@@ -12,8 +13,6 @@
 #ifndef SENSOR_CHAN_FORCE
 #define SENSOR_CHAN_FORCE SENSOR_CHAN_PRIV_START
 #endif
-
-#define DEBUG 0
 
 enum adxl313_custom_attr {
     SENSOR_ATTR_ADXL313_RAW_THRESH = SENSOR_ATTR_PRIV_START,
@@ -33,43 +32,34 @@ sensor_node_t sn;
 
 void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
 {
-    printk("MOTION DETECTED - ACTIVATING EMERGENCY");
+    APP_PRINT(SN_TAG, DEBUG_TAG, "Motion detected...Activating emergency protocol!");
     sensor_emergency_isr();
 }
 
 void init(sensor_node_t *sn)
 {
-    k_msleep(10000);
+    // Allow the sensors to configure.
+    k_sleep(K_SECONDS(5));
 
     if (!device_is_ready(acc_dev))
     {
-        printk("Sensor device not ready\n");
+        APP_PRINT(SN_TAG, ERROR_TAG, "Sensor device not ready!");
         return;
     }
     else
     {
-        printk("Sensor Init complete\n");
+        APP_PRINT(SN_TAG, DEBUG_TAG, "Sensor init complete!");
     }
 
-    #if DEBUG
-        struct sensor_value force;
-        sensor_sample_fetch(fsr_dev);
-        sensor_channel_get(fsr_dev, SENSOR_CHAN_FORCE, &force);
-        printk("FSR init reading: %d mN\n", force.val1);
-
-        int32_t tof_reading = vl53l1x_read(tof);
-        printk("ToF init reading: %d mm\n", tof_reading);
-    #endif
-
     struct sensor_trigger trig = {
-        .type = SENSOR_TRIG_DELTA, // "Delta" is often used for activity/motion
+        .type = SENSOR_TRIG_DELTA, 
         .chan = SENSOR_CHAN_ACCEL_XYZ,
     };
 
     int ret = sensor_trigger_set(acc_dev, &trig, motion_handler);
     
     if (ret != 0) {
-        printk("Failed to set trigger: %d\n", ret);
+        APP_PRINT(SN_TAG, ERROR_TAG, "Failed to set trigger: %d", ret);
         return;
     }
 
@@ -79,16 +69,16 @@ void init(sensor_node_t *sn)
     }
 
     if (!device_is_ready(tof)) {
-        printk("VL53L1X not ready\n");
+        APP_PRINT(SN_TAG, ERROR_TAG, "VL53L1X not ready!");
         return;
     }
 
     if (sensor_interrupt_init() < 0) {
-        printk("failed to init ToF interrupt\n");
+        APP_PRINT(SN_TAG, ERROR_TAG, "Failed to init ToF interrupt!");
     }
 
     if (vl53l1x_start_continuous(tof) < 0) {
-        printk("failed to start continuous mode\n");
+        APP_PRINT(SN_TAG, ERROR_TAG, "Failed to start VL53L1X in continuous mode");
         return;
     }
 }
@@ -117,9 +107,9 @@ void emergency_task()
             packet_t *packet = build_packet(EMERGENCY, NULL, 0);
             if (packet)
             {
+                APP_PRINT(SN_TAG, DEBUG_TAG, "Sending emergency packet!");
                 k_msgq_put(&packet_queue, &packet, K_FOREVER);
             }
-            printk("EMERGENCY PACKET SENT\n");
         }
     }
 }
@@ -157,13 +147,6 @@ void process_packet(packet_t *packet)
             (int32_t)force.val1,                                    /* force mN        */
             distance,                                               /* distance mm     */
         };
-
-        #if DEBUG
-        for (int i = 0; i < 5; i++)
-        {
-            printk("SENSOR NODE readings[%d] = %d\n", i, readings[i]);
-        }
-        #endif
 
         send_response(RESPONSE, (uint8_t *)readings, sizeof(readings));
         break;
@@ -227,7 +210,6 @@ void worker_task()
     {
         if (k_msgq_get(&packet_queue, &packet, K_FOREVER) == 0)
         {
-            print_packet("SENSOR NODE worker_task", packet);
             process_packet(packet);
             destroy_packet(packet);
         }
@@ -247,11 +229,11 @@ void uart_read_task()
 
     if (!device_is_ready(uart_dev))
     {
-        printk("[UART] ERROR: UART not ready\n");
+        APP_PRINT(SN_TAG, ERROR_TAG, "UART not ready!");
         return;
     }
 
-    printk("\n================ UART RX TASK STARTED ================\n");
+    APP_PRINT(SN_TAG, DEBUG_TAG, "UART read task started");
 
     while (true)
     {
@@ -287,24 +269,13 @@ void uart_read_task()
                     if (packet)
                     {
                         k_msgq_put(&packet_queue, &packet, K_FOREVER);
-                        #if DEBUG
-                        printk("[QUEUE] Items waiting: %d\n", k_msgq_num_used_get(&packet_queue));
-                        #endif
                     }
 
                     state = 0;
                 }
                 else if (payload_len > sizeof(payload))
                 {
-                    printk(
-                        "\n================ SENSOR NODE ERROR =================\n"
-                        "ERROR  : Payload too large\n"
-                        "LENGTH : %u\n"
-                        "MAX    : %u\n"
-                        "===========================================\n",
-                        payload_len,
-                        sizeof(payload));
-
+                    APP_PRINT(SN_TAG, ERROR_TAG, "Payload too large: %u bytes", payload_len);
                     state = 0;
                 }
                 else
@@ -337,13 +308,7 @@ void uart_read_task()
 
             default:
             {
-                printk(
-                    "\n================ BASE STATION ERROR =================\n"
-                    "ERROR : Invalid parser state (%d)\n"
-                    "ACTION: Resetting state machine\n"
-                    "===========================================\n",
-                    state);
-
+                APP_PRINT(SN_TAG, ERROR_TAG, "Invalid parser state: (%d). Resetting state machine.", state);
                 state = 0;
                 break;
             }
@@ -358,8 +323,8 @@ void uart_read_task()
     }
 }
 
+#ifndef CONFIG_ZTEST
 K_THREAD_DEFINE(uart_read_tid, STACK_SIZE, uart_read_task, NULL, NULL, NULL, READ_PRIO, 0, 0);
-
 K_THREAD_DEFINE(worker_tid, STACK_SIZE, worker_task, NULL, NULL, NULL, WORKER_PRIO, 0, 0);
-
 K_THREAD_DEFINE(emergency_tid, STACK_SIZE, emergency_task, NULL, NULL, NULL, EMERGENCY_PRIO, 0, 0);
+#endif

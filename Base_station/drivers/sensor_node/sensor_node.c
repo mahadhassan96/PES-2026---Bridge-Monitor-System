@@ -4,6 +4,7 @@
 #include "sensor_node.h"
 #include "../../../include/coms.h"
 #include "../../../include/base_station.h"
+#include "../../../include/debug_print.h"
 
 /* Semaphore: packet_handler_task gives it, fetch takes it */
 K_SEM_DEFINE(response_sem, 0, 1);
@@ -38,7 +39,7 @@ static int sensor_node_sample_fetch(const struct device *dev, enum sensor_channe
     /* Block until packet_handler_task signals response is ready */
     int ret = k_sem_take(&response_sem, K_MSEC(2000));
     if (ret != 0) {
-        printk("[DRIVER] fetch timeout — no response from sensor node\n");
+        APP_PRINT(DRVR_TAG, ERROR_TAG, "Fetch timeout! No response from sensor node...");
         return -ETIMEDOUT;
     }
 
@@ -51,7 +52,7 @@ static int sensor_node_channel_get(const struct device *dev,
                                    struct sensor_value *val)
 {
     if (driver_data.last_fetch_time == 0) {
-        printk("[DRIVER] get called before fetch\n");
+        APP_PRINT(DRVR_TAG, ERROR_TAG, "Get called before fetch!");
         return -ENODATA;
     }
 
@@ -97,13 +98,13 @@ static const struct sensor_driver_api sensor_node_api = {
 /* ── Init function — called once at boot by Zephyr ─────────────────────── */
 static int sensor_node_init(const struct device *dev)
 {
-    printk("[DRIVER] sensor_node initialized\n");
+    APP_PRINT(DRVR_TAG, DEBUG_TAG, "Sensor node initialized!");
     return 0;
 }
 
 /* ── Register driver as a Zephyr device ─────────────────────────────────── */
 DEVICE_DEFINE(sensor_node_sensor,           /* name used in DEVICE_GET */
-              "SN_sensor",         /* string name              */
+              SN_ALIAS,         /* string name              */
               sensor_node_init,      /* init function            */
               NULL,                /* power management         */
               &driver_data,        /* our data struct          */

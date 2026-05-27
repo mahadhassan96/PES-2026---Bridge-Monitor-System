@@ -1,5 +1,6 @@
-#include "../../include/base_station.h"
-#include "../../include/coms.h"
+#include "base_station.h"
+#include "coms.h"
+#include "debug_print.h"
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
@@ -17,17 +18,12 @@ K_MSGQ_DEFINE(uart_byte_queue, sizeof(uint8_t), 256, 1);
 K_MSGQ_DEFINE(packet_queue, sizeof(packet_t *), QUEUE_SIZE, __alignof__(packet_t *));
 base_station_t bs;
 
-// Create a semaphore for logging.
-// K_SEM_DEFINE(logging_sem, 0, 1);
-
 // Create macro aliases for each node.
 #define BTN0_NODE DT_ALIAS(button0)
 #define BTN1_NODE DT_ALIAS(button1)
 #define BTN2_NODE DT_ALIAS(button2)
 
-#define FORCE_LED_NODE DT_ALIAS(led0)
-#define DIST_LED_NODE DT_ALIAS(led1)
-#define ACCEL_LED_NODE DT_ALIAS(led2)
+#define EMERGENCY_LED_NODE DT_ALIAS(led0)
 
 #define UART_NODE DT_NODELABEL(uart0)
 
@@ -35,9 +31,7 @@ base_station_t bs;
 static const struct gpio_dt_spec btn0_spec = GPIO_DT_SPEC_GET(BTN0_NODE, gpios);
 static const struct gpio_dt_spec btn1_spec = GPIO_DT_SPEC_GET(BTN1_NODE, gpios);
 static const struct gpio_dt_spec btn2_spec = GPIO_DT_SPEC_GET(BTN2_NODE, gpios);
-static const struct gpio_dt_spec force_led_spec = GPIO_DT_SPEC_GET(FORCE_LED_NODE, gpios);
-static const struct gpio_dt_spec dist_led_spec = GPIO_DT_SPEC_GET(DIST_LED_NODE, gpios);
-static const struct gpio_dt_spec accel_led_spec = GPIO_DT_SPEC_GET(ACCEL_LED_NODE, gpios);
+static const struct gpio_dt_spec emergency_led_spec = GPIO_DT_SPEC_GET(EMERGENCY_LED_NODE, gpios);
 
 static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
 
@@ -50,6 +44,7 @@ static struct gpio_callback sens_btn_cb_data;
 
 static struct k_poll_signal poll_signal;
 static struct k_timer request_timer;
+static struct k_timer emergency_led_timer;
 
 static struct k_poll_event events[1];
 
@@ -98,7 +93,7 @@ static void uart_isr(const struct device *dev, void *user_data)
 
 void emergency_ack_handler(struct k_work *work)
 {
-    printk("[BS] 10 seconds passed. Sending EMERGENCY_ACK.\n");
+    APP_PRINT(BS_TAG, DEBUG_TAG, "Sending EMERGENCY_ACK response!");
     send_response(EMERGENCY_ACK, NULL, 0);
 }
 
@@ -127,23 +122,36 @@ void sens_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t p
     k_msgq_put(&event_queue, &evt, K_NO_WAIT);
 }
 
+void init_defaults(base_station_t *bs)
+{
+    bs->curr_state = BOOT;
+    bs->hw_init = true;
+    bs->emergency = false;
+    bs->emergency_light = false;
+
+    // Zero out the readings.
+    bs->sensor_readings.dist = 0;
+    bs->sensor_readings.force = 0;
+    bs->sensor_readings.accel_x = 0;
+    bs->sensor_readings.accel_y = 0;
+    bs->sensor_readings.accel_z = 0;
+
+    // Begin with medium sensitivity by default.
+    bs->sensitivity = MEDIUM;
+}
 
 // Sets up the initial state and performs necessary setup for the base station.
 void init(base_station_t *bs)
 {
     // Initialize the base station state
-    bs->curr_state = BOOT;
-    if (bs->logging)
-    {
-        printk("[DEBUG] Booting!\n");
-    }
+    APP_PRINT(BS_TAG, DEBUG_TAG, "Bootstrapping base station...");
 
     if (!bs->hw_init)
     {
         // Initialize UART device.
         if (!device_is_ready(uart_dev))
         {
-            printk("[ERROR] UART device is not ready!\n");
+            APP_PRINT(BS_TAG, ERROR_TAG, "UART device is not ready!");
             // Add error event to the event queue.
             base_station_event_t evt = ERROR_OCCURRED;
             k_msgq_put(&event_queue, &evt, K_NO_WAIT);
@@ -154,7 +162,7 @@ void init(base_station_t *bs)
         bs->sn_dev = device_get_binding(SN_ALIAS);
         if (!device_is_ready(bs->sn_dev))
         {
-            printk("[ERROR] Sensor node device not ready\n");
+            APP_PRINT(BS_TAG, ERROR_TAG, "Sensor node device not ready");
             return;
         }
 
@@ -168,26 +176,14 @@ void init(base_station_t *bs)
         uart_irq_rx_enable(uart_dev);
 
         // Initialize LEDs.
-        init_led(&force_led_spec);
-        init_led(&dist_led_spec);
-        init_led(&accel_led_spec);
-
-        // Default to medium sensitivity.
-        bs->sensitivity = MEDIUM;
+        init_led(&emergency_led_spec);
     }
 
-    bs->hw_init = true;
-    bs->emergency = false;
+    // Default all other state values.
+    init_defaults(bs);
 
     // Issue config packet to sensor node to set sensitivity.
     send_config(bs);
-
-    // Zero out the readings.
-    bs->sensor_readings.dist = 0;
-    bs->sensor_readings.force = 0;
-    bs->sensor_readings.accel_x = 0;
-    bs->sensor_readings.accel_y = 0;
-    bs->sensor_readings.accel_z = 0;
 
     // Initialize the polling signal and event.
     k_poll_signal_init(&poll_signal);
@@ -195,6 +191,7 @@ void init(base_station_t *bs)
 
     // Initialize the timer for periodic data requests, delayable work item for the emergency ack.
     k_timer_init(&request_timer, timer_handler, NULL);
+    k_timer_init(&emergency_led_timer, led_timer_handler, NULL);
     k_work_init_delayable(&emergency_ack_work, emergency_ack_handler);
 
     // Add boot complete event to the event queue.
@@ -205,6 +202,12 @@ void init(base_station_t *bs)
 void timer_handler(struct k_timer *t)
 {
     k_poll_signal_raise(&poll_signal, TIMER_SIGNAL);
+}
+
+void led_timer_handler(struct k_timer *timer)
+{
+    bs.emergency_light = !bs.emergency_light;
+    gpio_pin_set_dt(&emergency_led_spec, bs.emergency_light);
 }
 
 static inline void toggle_timer(bool state_change, bool start)
@@ -227,11 +230,15 @@ void error_handler(base_station_t *bs, bool state_change)
 {
     // Stop the periodic timer during error.
     toggle_timer(state_change, false);
+
+    // Turn on the emergency light solid during error.
+    start_light();
 }
 
 void boot_handler(base_station_t *bs, bool state_change)
 {
     toggle_timer(state_change, false);
+    stop_light();
 
     // Re-boot the system.
     init(bs);
@@ -239,8 +246,11 @@ void boot_handler(base_station_t *bs, bool state_change)
 
 void alert_handler(base_station_t *bs, bool state_change)
 {
+    // Stop the periodic timer during alert.
     toggle_timer(state_change, false);
-    // TODO: Turn on LEDs based on which anomalies are detected.
+
+    // Flash the emergency light.
+    start_flashing_light();
 }
 
 void send_config(base_station_t *bs)
@@ -249,20 +259,14 @@ void send_config(base_station_t *bs)
     packet_t *packet = build_packet(CONFIG, config_data, sizeof(config_data));
     if (packet)
     {
-        if (bs->logging)
-        {
-            printk("[BS::DEBUG] Sending config packet with sensitivity: %s\n", sensitivity_to_str(bs->sensitivity));
-        }
+        APP_PRINT(BS_TAG, DEBUG_TAG, "Sending config packet with sensitivity: %s", sensitivity_to_str(bs->sensitivity));
 
         send_packet(uart_dev, packet);
         destroy_packet(packet);
     }
     else
     {
-        if (bs->logging)
-        {
-            printk("[BS::ERROR] Failed to build config packet!\n");
-        }
+        APP_PRINT(BS_TAG, ERROR_TAG, "Failed to build config packet!");
     }
 }
 
@@ -271,30 +275,24 @@ void request_data()
     packet_t *packet = build_packet(REQUEST, NULL, 0);
     if (packet)
     {
-        if (bs.logging)
-        {
-            print_packet("BASE STATION - request_data", packet);
-        }
+        print_packet(BS_TAG, packet_type_to_str(REQUEST), packet);
         send_packet(uart_dev, packet);
         destroy_packet(packet);
     }
     else
     {
-        if (bs.logging)
-        {
-            printk("[BS::ERROR] Packet build failed!\n");
-        }
+        APP_PRINT(BS_TAG, ERROR_TAG, "Packet build failed!");
     }
 }
 
 void normal_handler(base_station_t *bs, bool state_change)
 {
     toggle_timer(state_change, true);
-    turn_off_leds();
+    stop_light();
 
     if (sensor_sample_fetch(bs->sn_dev) != 0 && bs->curr_state != NORMAL)
     {
-        printk("[ERROR] BS fetch failed: not in normal state\n");
+        APP_PRINT(BS_TAG, ERROR_TAG, "BS fetch failed: not in normal state");
         return;
     }
 
@@ -307,12 +305,10 @@ void normal_handler(base_station_t *bs, bool state_change)
 
     update_sensor_values(&bs->sensor_readings, &dist, &force, &accel_x, &accel_y, &accel_z);
 
-    if(bs->logging)
-    {   
-        sensor_reading_t *reading = &bs->sensor_readings;
-        printk("[BS::DEBUG] dist=%d force=%d accel=(%d, %d, %d)\n",
-            reading->dist, reading->force, reading->accel_x, reading->accel_y, reading->accel_z);
-    }
+    sensor_reading_t *r;
+    r = &bs->sensor_readings;
+    APP_PRINT(BS_TAG, DEBUG_TAG, "Reading: { dist=%d, force=%d, accel=(%d, %d, %d) }",
+        r->dist, r->force, r->accel_x, r->accel_y, r->accel_z);
 }
 
 void update_sensor_values(sensor_reading_t *readings, struct sensor_value *dist, struct sensor_value *force, struct sensor_value *accel_x, struct sensor_value *accel_y, struct sensor_value *accel_z)
@@ -324,23 +320,26 @@ void update_sensor_values(sensor_reading_t *readings, struct sensor_value *dist,
     readings->accel_z = (int32_t)accel_z->val1;
 }
 
-void turn_off_leds()
+void start_flashing_light(void)
 {
-    gpio_pin_set_dt(&force_led_spec, 0);
-    gpio_pin_set_dt(&dist_led_spec, 0);
-    gpio_pin_set_dt(&accel_led_spec, 0);
+    k_timer_start(&emergency_led_timer, K_NO_WAIT, K_MSEC(FLASH_MS));
 }
 
-void turn_on_leds(bool force, bool dist, bool accel)
+void start_light(void)
 {
-    gpio_pin_set_dt(&force_led_spec, force);
-    gpio_pin_set_dt(&dist_led_spec, dist);
-    gpio_pin_set_dt(&accel_led_spec, accel);
+    gpio_pin_set_dt(&emergency_led_spec, 1);
+    bs.emergency_light = true;
+}
+
+void stop_light(void)
+{
+    k_timer_stop(&emergency_led_timer);
+    gpio_pin_set_dt(&emergency_led_spec, 0);
+    bs.emergency_light = false;
 }
 
 void worker_task()
 {
-    bs.logging = true;
     bs.hw_init = false;
     init(&bs);
 
@@ -436,20 +435,6 @@ base_station_event_t get_next_state(base_station_state_t curr_state, base_statio
     return curr_state;
 }
 
-
-const char *packet_type_to_str(uint8_t type)
-{
-    switch (type)
-    {
-        case REQUEST: return "REQUEST";
-        case RESPONSE: return "RESPONSE";
-        case EMERGENCY: return "EMERGENCY";
-        case EMERGENCY_ACK: return "EMERGENCY_ACK";
-        case READY: return "READY";
-        default: return "UNKNOWN";
-    }
-}
-
 const char *sensitivity_to_str(uint8_t sensitivity)
 {
     switch (sensitivity)
@@ -466,7 +451,7 @@ void process_packet(packet_t *packet)
 {
     if (bs.emergency && packet->type != READY)
     {
-        printk("Already IN EMERGENCY PLEASE WAIT... TYPE: %s\n", packet_type_to_str(packet->type));
+        APP_PRINT(BS_TAG, DEBUG_TAG, "Already in emergency mode...please wait!");
         return;
     }
 
@@ -487,21 +472,21 @@ void process_packet(packet_t *packet)
             }
             else
             {
-                printk("[BS] RESPONSE payload missing or wrong size\n");
+                APP_PRINT(BS_TAG, ERROR_TAG, "Response payload missing or wrong size");
             }
 
             break;
         }
 case EMERGENCY:
         {
-            print_packet("BASE STATION EMERGENCY", packet);
+            print_packet(BS_TAG, packet_type_to_str(EMERGENCY), packet);
 
             if (!bs.emergency) {
                 bs.emergency = true;
                 base_station_event_t evt = ANOMALY_DETECTED;
                 k_msgq_put(&event_queue, &evt, K_NO_WAIT);
             }
-            printk("[BS] ALERT MODE! Press BTN 'GP21' to clear emergency and send ACK.\n");
+            APP_PRINT(BS_TAG, DEBUG_TAG, "ALERT MODE! Press BTN 'GP21' to clear emergency and send EMERGENCY_ACK.");
             
             break;
         }
@@ -515,7 +500,7 @@ case EMERGENCY:
         }
 
         default:
-            print_packet("BASE STATION DEFAULT", packet);
+            print_packet(BS_TAG, "DEFAULT", packet);
             break;
         }
 }
@@ -559,7 +544,7 @@ void uart_rx_task(void)
                 {
                     if (k_msgq_put(&packet_queue, &pkt, K_NO_WAIT) != 0)
                     {
-                        printk("[RX][ERROR] Packet queue full — dropping packet\n");
+                        APP_PRINT(BS_TAG, ERROR_TAG, "Packet queue full; dropping packet!");
                         destroy_packet(pkt);
                     }
                 }
@@ -567,7 +552,7 @@ void uart_rx_task(void)
             }
             else if (payload_len > sizeof(payload))
             {
-                printk("[RX][ERROR] Payload too large (%u) - dropping\n", payload_len);
+                APP_PRINT(BS_TAG, ERROR_TAG, "Payload too large (%u); dropping packet!", payload_len);
                 state = 0;
             }
             else
@@ -586,7 +571,7 @@ void uart_rx_task(void)
                 {
                     if (k_msgq_put(&packet_queue, &pkt, K_NO_WAIT) != 0)
                     {
-                        printk("[RX][ERROR] Packet queue full - dropping packet\n");
+                        APP_PRINT(BS_TAG, ERROR_TAG, "Packet queue full; dropping packet!");
                         destroy_packet(pkt);
                     }
                 }
@@ -617,6 +602,12 @@ void packet_handler_task(void)
         }
     }
 }
+
+void cycle_sensitivity(base_station_t *bs)
+{
+    bs->sensitivity = (bs->sensitivity + 1) % SENSITIVITY_LEVELS;
+}
+
 // Periodically checks the event queue and updates the base station state accordingly.
 void fsm_task()
 {
@@ -630,18 +621,11 @@ void fsm_task()
 
             log_event(&bs, ev);
 
-            if (ev == LOGGING_PRESSED)
-            {
-                // Toggle logging state without changing the current state.
-                bs.logging = !bs.logging;
-                log_state(&bs);
-                continue;
-            }
-
             if (ev == SENS_PRESSED)
             {
                 // Cycle through sensitivity levels and send config packet, without changing the current state.
                 bs.sensitivity = (bs.sensitivity + 1) % SENSITIVITY_LEVELS;
+                cycle_sensitivity(&bs);
                 send_config(&bs);
                 continue;
             }
@@ -654,14 +638,12 @@ void fsm_task()
     }
 }
 
-static const char *event_str(base_station_event_t ev)
+const char *event_to_str(base_station_event_t ev)
 {
     switch (ev)
     {
     case RESET_PRESSED:
         return "Reset Pressed";
-    case LOGGING_PRESSED:
-        return "Logging Pressed";
     case SENS_PRESSED:
         return "Sensitivity Pressed";
     case BOOT_COMPLETE:
@@ -679,25 +661,10 @@ static const char *event_str(base_station_event_t ev)
 
 void log_event(base_station_t *bs, base_station_event_t ev)
 {
-    const char *msg = event_str(ev);
-
-    // Always log logging events.
-    if (ev == LOGGING_PRESSED)
-    {
-        printk("[DEBUG] Event: %s\n", msg);
-        return;
-    }
-
-    // Skip printing if logging is disabled.
-    if (!bs->logging)
-    {
-        return;
-    }
-
-    printk("[DEBUG] Event: %s\n", msg);
+    APP_PRINT(BS_TAG, DEBUG_TAG, "Event: %s", event_to_str(ev));
 }
 
-static const char *state_str(base_station_state_t state)
+const char *state_to_str(base_station_state_t state)
 {
     switch (state)
     {
@@ -716,18 +683,13 @@ static const char *state_str(base_station_state_t state)
 
 void log_state(base_station_t *bs)
 {
-    const char *msg = state_str(bs->curr_state);
-
-    // Skip printing if logging is disabled.
-    if (!bs->logging)
-    {
-        return;
-    }
-
-    printk("[DEBUG] State: %s\n", msg);
+    APP_PRINT(BS_TAG, DEBUG_TAG, "State: %s", state_to_str(bs->curr_state));
 }
 
+
+#ifndef CONFIG_ZTEST
 K_THREAD_DEFINE(fsm_tid, STACK_SIZE, fsm_task, NULL, NULL, NULL, UPDATE_PRIO, 0, 0);
 K_THREAD_DEFINE(worker_tid, STACK_SIZE, worker_task, NULL, NULL, NULL, WORKER_PRIO, 0, 0);
 K_THREAD_DEFINE(rx_tid, STACK_SIZE, uart_rx_task, NULL, NULL, NULL, READ_PRIO, 0, 0);
-K_THREAD_DEFINE(handler_tid, STACK_SIZE, packet_handler_task, NULL, NULL, NULL, HANDLER_PRIO,  0, 0);
+K_THREAD_DEFINE(handler_tid, STACK_SIZE, packet_handler_task, NULL, NULL, NULL, HANDLER_PRIO, 0, 0);
+#endif

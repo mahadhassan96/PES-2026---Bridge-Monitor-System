@@ -1,0 +1,7 @@
+- platform: rpi_pico2/rp2350a/m33
+  id: pico2
+  runner: uf2
+  connected: true
+  product: "Raspberry Pi Pico 2"
+  serial: /dev/cu.usbmodem101
+  baud: 115200

@@ -1,0 +1,5 @@
+tests:
+  base_station.unit:
+    platform_allow:
+      - rpi_pico2/rp2350a/m33
+    harness: ztest

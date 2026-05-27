@@ -15,8 +15,8 @@ Setup a zephyr virtual environment, on Mac this looks like:
 ## Build Instructions
 Once the following requirements have been met, build the base station with:
 ```bash
-    cd /path/to/base_station/
-    west build -b rpi_pico2/rp2350a/m33 -p
+    cd /path/to/repo/
+    west build -b rpi_pico2/rp2350a/m33 base_station -p
 ```
 
 *NOTE:* emitting the `-p` flag stops a pristine build
@@ -39,4 +39,19 @@ As of now, the following pins are assigned on the base station Pico:
 | Pin       | Type     | Usage                  |
 |-----------|----------|------------------------|
 | GP20      | btn      | Reset                  |
-| GP21      | btn      | Toggle logging         |
+| GP21      | btn      | Emergency ack          |
+| GP22      | btn      | Config sensitivity     |
+|-----------|----------|------------------------|
+
+## Testing
+To run base station tests, build test suite .uf2 with:
+```bash
+cd /path/to/repo/
+rm -rf build/pico-test
+west build -b rpi_pico2/rp2350a/m33 testing/base_station
+```
+Then copy the .uf2 file to the base station pico (in BOOTSEL mode) with
+```bash
+    cp build/zephyr/zephyr.uf2 /Volumes/RP2350
+```
+Inspect the result of the tests in the serial monitor, following the steps above.

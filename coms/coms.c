@@ -1,4 +1,5 @@
 #include "../include/coms.h"
+#include "../include/debug_print.h"
 
 // Mutex for UART channel access.
 K_MUTEX_DEFINE(uart_tx_mutex);
@@ -167,7 +168,7 @@ packet_t *receive_packet(const struct device *uart_dev, uint8_t data_len)
 }
 
 
-void print_packet(const char *tag, packet_t *packet)
+void print_packet(const char* src_tag, const char *packet_type_tag, packet_t *packet)
 {
     static const char *packet_type_names[] = {
         [SYN] = "SYN",
@@ -181,21 +182,23 @@ void print_packet(const char *tag, packet_t *packet)
         [CONFIG_ACK] = "CONFIG_ACK"};
     if (packet == NULL)
     {
-        printk("\n[%s] ERROR: NULL packet\n", tag);
+        APP_PRINT(src_tag, ERROR_TAG, "Null or malformed packet!");
         return;
     }
 
-    const char *type_str =
+    const char *type_str;
+    type_str =
         (packet->type < ARRAY_SIZE(packet_type_names) && packet_type_names[packet->type])
         ? packet_type_names[packet->type]
         : "UNKNOWN";
 
-    printk(
-        "\n================ %s PACKET ================\n"
-        "TYPE   : %s (%u / 0x%02X)\n"
-        "LENGTH : %u\n"
-        "PAYLOAD: ",
-        tag,
+    PACKET_PRINT(
+        "\n========== %s::%s PACKET ==========\n"
+        "TYPE    : %s (%u / 0x%02X)\n"
+        "LENGTH  : %u\n"
+        "PAYLOAD : ",
+        src_tag,
+        packet_type_tag,
         type_str,
         packet->type,
         packet->type,
@@ -203,14 +206,15 @@ void print_packet(const char *tag, packet_t *packet)
 
     if (packet->data_len == 0 || packet->data == NULL)
     {
-        printk("<EMPTY>\n");
+        PACKET_PRINT("<EMPTY>\n");
     }
     /* Check if the packet actually contains our 5-integer telemetry payload */
     else if ((packet->type == RESPONSE || packet->type == EMERGENCY) &&
              (packet->data_len == sizeof(int32_t) * 5))
     {
-        int32_t *readings = (int32_t *)packet->data;
-        printk("\n"
+        int32_t *readings;
+        readings = (int32_t *)packet->data;
+        PACKET_PRINT("\n"
                "  -> Accel X: %d mg\n"
                "  -> Accel Y: %d mg\n"
                "  -> Accel Z: %d mg\n"
@@ -223,12 +227,12 @@ void print_packet(const char *tag, packet_t *packet)
     {
         for (uint8_t i = 0; i < packet->data_len; i++)
         {
-            printk("%02X ", packet->data[i]);
+            PACKET_PRINT("%02X ", packet->data[i]);
         }
-        printk("\n");
+        PACKET_PRINT("\n");
     }
 
-    printk("==================================================\n");
+    PACKET_PRINT("==================================================\n\n");
 }
 
 void send_response(packet_type_t type, uint8_t *data, uint8_t data_len)
@@ -236,8 +240,21 @@ void send_response(packet_type_t type, uint8_t *data, uint8_t data_len)
     packet_t *response_packet = build_packet(type, data, data_len);
     if (response_packet)
     {
-        print_packet("SENSOR NODE send_response", response_packet);
+        print_packet(SN_TAG, packet_type_to_str(type), response_packet);
         send_packet(uart_dev, response_packet);
         destroy_packet(response_packet);
+    }
+}
+
+const char *packet_type_to_str(uint8_t type)
+{
+    switch (type)
+    {
+        case REQUEST: return "REQUEST";
+        case RESPONSE: return "RESPONSE";
+        case EMERGENCY: return "EMERGENCY";
+        case EMERGENCY_ACK: return "EMERGENCY_ACK";
+        case READY: return "READY";
+        default: return "UNKNOWN";
     }
 }

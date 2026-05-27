@@ -1,0 +1,102 @@
+/ {
+    chosen {
+        zephyr,console = &cdc_acm_uart0;
+    };
+};
+
+&zephyr_udc0 {
+    status = "okay";
+
+    cdc_acm_uart0: cdc_acm_uart0 {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
+
+/ {
+    keys {
+        compatible = "gpio-keys";
+        button0: button_0 {
+            gpios = <&gpio0 20 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+            label = "USR_BTN_0";
+        };
+        button1: button_1 {
+            gpios = <&gpio0 21 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+            label = "USR_BTN_1";
+        };
+        button2: button_2 {
+            gpios = <&gpio0 22 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+            label = "USR_BTN_2";
+        };
+    };
+
+    leds {
+        compatible = "gpio-leds";
+        led0: led_0 {
+            gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+            label = "EXT_LED0";
+        };
+    };
+
+    aliases {
+        button0 = &button0;
+        button1 = &button1;
+        button2 = &button2;
+        led0 = &led0;
+    };
+};
+
+&uart0 {
+    status = "okay";
+    current-speed = <115200>;
+    pinctrl-0 = <&uart0_default>;
+    pinctrl-names = "default";
+};
+
+/ {
+    zephyr,user {
+        io-channels = <&adc 0>;
+    };
+
+    fsr_sensor: fsr_4xx {
+        compatible = "fsr_4xx";
+        io-channels = <&adc 0>;
+        resolution = <12>;
+        status = "okay";
+    };
+};
+
+&pinctrl {
+    uart0_default: uart0_default {
+        group1 {
+            pinmux = <UART0_TX_P0>;
+        };
+        group2 {
+            pinmux = <UART0_RX_P1>;
+            input-enable;
+        };
+    };
+};
+
+&i2c0 {
+    status = "okay";
+
+    vl53l1x0: vl53l1x@29 {
+        compatible = "vl53l1x_st";
+        reg = <0x29>;
+        int-gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+        threshold-mm = <70>;
+        intermeasurement-period-ms = <80>;
+        sample-window-ms = <3000>;
+        status = "okay";
+    };
+};
+
+&i2c1 {
+        status = "okay";
+        adxl_313: adxl_313@1d {
+            compatible = "adxl_313"; /* adxl_313 uses the adxl_313 driver */
+            reg = <0x1d>;
+            int1-gpios = <&gpio0 15 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+            status = "okay";
+        };
+    };

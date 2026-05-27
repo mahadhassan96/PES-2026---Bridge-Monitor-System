@@ -16,6 +16,7 @@
 #include "coms.h"
 
 #define WORK_INTERVAL_S 5
+#define FLASH_MS 150
 
 #define STACK_SIZE 4096
 #define QUEUE_SIZE 16
@@ -25,6 +26,7 @@
 #define HANDLER_PRIO  6
 
 #define SN_ALIAS "SN_sensor"
+
 #define SENSITIVITY_LEVELS 3
 
 typedef enum
@@ -38,7 +40,6 @@ typedef enum
 typedef enum
 {
     RESET_PRESSED,
-    LOGGING_PRESSED,
     SENS_PRESSED,
     BOOT_COMPLETE,
     ANOMALY_DETECTED,
@@ -57,16 +58,17 @@ typedef struct
     sensor_states_t sensor_states;
     base_station_state_t curr_state;
     const struct device *sn_dev;
-    bool logging;
     bool hw_init;
     bool emergency;
+    bool emergency_light;
     uint8_t sensitivity;
 } base_station_t;
 
 void init(base_station_t* bs);
 
-void turn_on_leds(bool force, bool dist, bool accel);
-void turn_off_leds();
+void start_flashing_light();
+void stop_light();
+void start_light();
 
 void normal_handler(base_station_t *bs, bool state_change);
 void alert_handler(base_station_t *bs, bool state_change);
@@ -78,18 +80,18 @@ void request_data();
 void send_config(base_station_t *bs);
 
 void reset_system_cb();
-void update_logging_cb();
 void alert_cb();
 void get_fresh_data_cb();
 
 void update_sensor_values(sensor_reading_t *readings, struct sensor_value *dist, struct sensor_value *force, struct sensor_value *accel_x, struct sensor_value *accel_y, struct sensor_value *accel_z);
 
 void reset_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
-void logging_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 void sens_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 void init_btn(const struct gpio_dt_spec *spec, gpio_callback_handler_t callback, struct gpio_callback *callback_data);
 
 void timer_handler(struct k_timer *t);
+void led_timer_handler(struct k_timer *timer);
+void cycle_sensitivity(base_station_t *bs);
 
 base_station_event_t get_next_state(base_station_state_t curr_state, base_station_event_t ev);
 
@@ -99,6 +101,9 @@ void uart_read_task();
 
 void log_event(base_station_t* bs, base_station_event_t ev);
 void log_state(base_station_t* bs);
+
+const char *event_to_str(base_station_event_t ev);
+const char *state_to_str(base_station_state_t state);
 const char *sensitivity_to_str(uint8_t sensitivity);
 
 void process_packet();

@@ -11,5 +11,13 @@ project(sensor_node)
 
 # Add source files
 FILE(GLOB SRC_FILES "src/*.c" "ISR/*.c")
-target_sources(app PRIVATE ../coms/coms.c ${SRC_FILES})
-target_include_directories(app PRIVATE src ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+
+target_sources(app PRIVATE 
+    ${SRC_FILES}
+    src/sensor_node.c
+    ../coms/coms.c
+)
+
+target_include_directories(app PRIVATE
+    ../include
+)
