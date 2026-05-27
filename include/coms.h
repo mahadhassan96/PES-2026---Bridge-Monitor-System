@@ -21,7 +21,6 @@ typedef enum
     CONFIG,
     CONFIG_ACK
 } packet_type_t;
-
 typedef struct
 {
     uint8_t data_len; // the payload length in bytes

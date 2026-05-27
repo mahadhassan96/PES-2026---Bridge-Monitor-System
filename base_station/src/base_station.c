@@ -45,7 +45,7 @@ static struct k_work_delayable emergency_ack_work;
 
 // Create callback struct for button ISRs.
 static struct gpio_callback reset_btn_cb_data;
-static struct gpio_callback logging_btn_cb_data;
+static struct gpio_callback ack_btn_cb_data;
 static struct gpio_callback sens_btn_cb_data;
 
 static struct k_poll_signal poll_signal;
@@ -102,6 +102,32 @@ void emergency_ack_handler(struct k_work *work)
     send_response(EMERGENCY_ACK, NULL, 0);
 }
 
+//Setup BTN ISRs
+void reset_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+    // Add reset pressed event to the event queue.
+    base_station_event_t evt = RESET_PRESSED;
+    k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+}
+
+void ack_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+    // Only allow sending the ACK if we are actually in an emergency
+    if (bs.emergency) 
+    {
+        // Schedule the work immediately (K_NO_WAIT) to safely send the UART packet outside the ISR
+        k_work_schedule(&emergency_ack_work, K_NO_WAIT);
+    }
+}
+
+void sens_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+    // Cycle through sensitivity levels on each press.
+    base_station_event_t evt = SENS_PRESSED;
+    k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+}
+
+
 // Sets up the initial state and performs necessary setup for the base station.
 void init(base_station_t *bs)
 {
@@ -134,7 +160,7 @@ void init(base_station_t *bs)
 
         // Initialize buttons and their ISRs.
         init_btn(&btn0_spec, reset_btn_isr, &reset_btn_cb_data);
-        init_btn(&btn1_spec, logging_btn_isr, &logging_btn_cb_data);
+        init_btn(&btn1_spec, ack_btn_isr, &ack_btn_cb_data);
         init_btn(&btn2_spec, sens_btn_isr, &sens_btn_cb_data);
 
         // Initialize ISR
@@ -173,27 +199,6 @@ void init(base_station_t *bs)
 
     // Add boot complete event to the event queue.
     base_station_event_t evt = BOOT_COMPLETE;
-    k_msgq_put(&event_queue, &evt, K_NO_WAIT);
-}
-
-void reset_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-    // Add reset pressed event to the event queue.
-    base_station_event_t evt = RESET_PRESSED;
-    k_msgq_put(&event_queue, &evt, K_NO_WAIT);
-}
-
-void logging_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-    // Toggle the logging state.
-    base_station_event_t evt = LOGGING_PRESSED;
-    k_msgq_put(&event_queue, &evt, K_NO_WAIT);
-}
-
-void sens_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-    // Cycle through sensitivity levels on each press.
-    base_station_event_t evt = SENS_PRESSED;
     k_msgq_put(&event_queue, &evt, K_NO_WAIT);
 }
 
@@ -487,15 +492,17 @@ void process_packet(packet_t *packet)
 
             break;
         }
-        case EMERGENCY:
+case EMERGENCY:
         {
             print_packet("BASE STATION EMERGENCY", packet);
 
-            bs.emergency = true;
-            base_station_event_t evt = ANOMALY_DETECTED;
-            k_msgq_put(&event_queue, &evt, K_NO_WAIT);
-
-            k_work_schedule(&emergency_ack_work, K_SECONDS(10)); 
+            if (!bs.emergency) {
+                bs.emergency = true;
+                base_station_event_t evt = ANOMALY_DETECTED;
+                k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+            }
+            printk("[BS] ALERT MODE! Press BTN 'GP21' to clear emergency and send ACK.\n");
+            
             break;
         }
 

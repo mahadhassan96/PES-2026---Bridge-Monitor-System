@@ -21,6 +21,10 @@
 #define ACT_INACT_CTL    0x27
 #define SCALE_FACTOR     0.009577
 
+enum adxl313_custom_attr {
+    SENSOR_ATTR_ADXL313_RAW_THRESH = SENSOR_ATTR_PRIV_START,
+};
+
 struct adxl_313_data {
     const struct device *dev;
     int16_t x;
@@ -39,7 +43,29 @@ struct adxl_313_config {
     struct gpio_dt_spec int_gpio;
 };
 
-static int adxl313_trigger_set(const struct device *dev,
+static int adxl_313_attr_set(const struct device *dev,
+                             enum sensor_channel chan,
+                             enum sensor_attribute attr,
+                             const struct sensor_value *val)
+{
+    // Catch your custom raw attribute shortcut
+    if ((int)attr == SENSOR_ATTR_ADXL313_RAW_THRESH) {
+        
+        // Take the raw integer byte directly from the app (0x20, 0x50, 0x80, etc.)
+        uint8_t thresh_act = (uint8_t)val->val1;
+
+        // Write it directly to the ADXL313 register
+        if (sensor_write_reg_adxl313(ADDRESS, THRESH_ACT, &thresh_act, 1) != I2C_OK) {
+            return -EIO;
+        }
+        return 0;
+    }
+
+    // Fallback for anything else
+    return -ENOTSUP;
+}
+
+static int adxl_313_trigger_set(const struct device *dev,
                                const struct sensor_trigger *trig,
                                sensor_trigger_handler_t handler)
 {
@@ -127,7 +153,8 @@ static int adxl_313_channel_get(const struct device *dev, enum sensor_channel ch
 static const struct sensor_driver_api adxl_313_api = {
     .sample_fetch = adxl_313_sample_fetch,
     .channel_get = adxl_313_channel_get,
-    .trigger_set = adxl313_trigger_set
+    .trigger_set = adxl_313_trigger_set,
+    .attr_set = adxl_313_attr_set
 };
 
 static int adxl_313_init(const struct device *dev){
@@ -158,7 +185,7 @@ static int adxl_313_init(const struct device *dev){
     uint8_t data_format = 0xB;
     uint8_t power_ctl = 0x08;
     uint8_t int_enable = 0x10;
-    uint8_t thresh_act = 0x50;
+    uint8_t thresh_act = 0x80;
     uint8_t fifo_ctl = 0;
     uint8_t buffer[6];
     uint8_t status;
