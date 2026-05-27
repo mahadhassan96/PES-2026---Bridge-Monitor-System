@@ -18,8 +18,9 @@ typedef enum
     RESPONSE,
     EMERGENCY,
     EMERGENCY_ACK,
+    CONFIG,
+    CONFIG_ACK
 } packet_type_t;
-
 typedef struct
 {
     uint8_t data_len; // the payload length in bytes

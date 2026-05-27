@@ -15,6 +15,10 @@
 
 #define DEBUG 0
 
+enum adxl313_custom_attr {
+    SENSOR_ATTR_ADXL313_RAW_THRESH = SENSOR_ATTR_PRIV_START,
+};
+
 static const struct device *const acc_dev = DEVICE_DT_GET(DT_NODELABEL(adxl_313));
 static const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
 
@@ -177,6 +181,25 @@ void process_packet(packet_t *packet)
         send_response(READY, NULL, 0);
         break;
     }
+
+    case CONFIG:
+    {
+        uint8_t sensitivity = (uint8_t)packet->data[0];
+        struct sensor_value raw_sensitivity;
+        if(sensitivity == LOW){
+            raw_sensitivity.val1 = 0x20;
+            sensor_attr_set(acc_dev, SENSOR_CHAN_ACCEL_XYZ, (enum sensor_attribute)SENSOR_ATTR_ADXL313_RAW_THRESH, &raw_sensitivity);
+        }
+        else if(sensitivity == MEDIUM){
+            raw_sensitivity.val1 = 0x50;
+            sensor_attr_set(acc_dev, SENSOR_CHAN_ACCEL_XYZ, (enum sensor_attribute)SENSOR_ATTR_ADXL313_RAW_THRESH, &raw_sensitivity);
+        }
+        else if(sensitivity == HIGH){
+            raw_sensitivity.val1 = 0x80;
+            sensor_attr_set(acc_dev, SENSOR_CHAN_ACCEL_XYZ, (enum sensor_attribute)SENSOR_ATTR_ADXL313_RAW_THRESH, &raw_sensitivity);
+        }
+    }
+
     default:
         break;
     }

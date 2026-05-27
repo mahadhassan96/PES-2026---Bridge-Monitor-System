@@ -28,4 +28,11 @@ typedef struct
     bool force_anomaly;
 } sensor_states_t;
 
+typedef enum
+{
+    LOW,
+    MEDIUM,
+    HIGH
+} sensor_sensitivity_t;
+
 #endif /* READINGS_H */
