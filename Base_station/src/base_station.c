@@ -1,4 +1,5 @@
 #include "../../include/base_station.h"
+#include "../../include/coms.h"
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
@@ -22,6 +23,7 @@ base_station_t bs;
 // Create macro aliases for each node.
 #define BTN0_NODE DT_ALIAS(button0)
 #define BTN1_NODE DT_ALIAS(button1)
+#define BTN2_NODE DT_ALIAS(button2)
 
 #define FORCE_LED_NODE DT_ALIAS(led0)
 #define DIST_LED_NODE DT_ALIAS(led1)
@@ -32,6 +34,7 @@ base_station_t bs;
 // Create specs for each node.
 static const struct gpio_dt_spec btn0_spec = GPIO_DT_SPEC_GET(BTN0_NODE, gpios);
 static const struct gpio_dt_spec btn1_spec = GPIO_DT_SPEC_GET(BTN1_NODE, gpios);
+static const struct gpio_dt_spec btn2_spec = GPIO_DT_SPEC_GET(BTN2_NODE, gpios);
 static const struct gpio_dt_spec force_led_spec = GPIO_DT_SPEC_GET(FORCE_LED_NODE, gpios);
 static const struct gpio_dt_spec dist_led_spec = GPIO_DT_SPEC_GET(DIST_LED_NODE, gpios);
 static const struct gpio_dt_spec accel_led_spec = GPIO_DT_SPEC_GET(ACCEL_LED_NODE, gpios);
@@ -43,6 +46,7 @@ static struct k_work_delayable emergency_ack_work;
 // Create callback struct for button ISRs.
 static struct gpio_callback reset_btn_cb_data;
 static struct gpio_callback logging_btn_cb_data;
+static struct gpio_callback sens_btn_cb_data;
 
 static struct k_poll_signal poll_signal;
 static struct k_timer request_timer;
@@ -79,7 +83,7 @@ void init_led(const struct gpio_dt_spec *spec)
     }
 }
 
-// ISR, enqueue Bytes in uart_byte_queue
+// Enqueue newly received bytes in uart_byte_queue.
 static void uart_isr(const struct device *dev, void *user_data)
 {
     if (!uart_irq_update(dev))    { return; }
@@ -120,35 +124,50 @@ void init(base_station_t *bs)
             return;
         }
 
+        // Initilaze the sensor node device.
+        bs->sn_dev = device_get_binding(SN_ALIAS);
+        if (!device_is_ready(bs->sn_dev))
+        {
+            printk("[ERROR] Sensor node device not ready\n");
+            return;
+        }
+
         // Initialize buttons and their ISRs.
         init_btn(&btn0_spec, reset_btn_isr, &reset_btn_cb_data);
         init_btn(&btn1_spec, logging_btn_isr, &logging_btn_cb_data);
+        init_btn(&btn2_spec, sens_btn_isr, &sens_btn_cb_data);
 
         // Initialize ISR
         uart_irq_callback_set(uart_dev, uart_isr);
         uart_irq_rx_enable(uart_dev);
 
-
         // Initialize LEDs.
         init_led(&force_led_spec);
         init_led(&dist_led_spec);
         init_led(&accel_led_spec);
+
+        // Default to medium sensitivity.
+        bs->sensitivity = MEDIUM;
     }
 
     bs->hw_init = true;
+    bs->emergency = false;
 
-    // Initialize sensors and perform handshake
-    // init_sensors();
-    // sensor_handshake();
+    // Issue config packet to sensor node to set sensitivity.
+    send_config(bs);
+
+    // Zero out the readings.
+    bs->sensor_readings.dist = 0;
+    bs->sensor_readings.force = 0;
+    bs->sensor_readings.accel_x = 0;
+    bs->sensor_readings.accel_y = 0;
+    bs->sensor_readings.accel_z = 0;
 
     // Initialize the polling signal and event.
     k_poll_signal_init(&poll_signal);
     k_poll_event_init(&events[0], K_POLL_TYPE_SIGNAL, K_POLL_MODE_NOTIFY_ONLY, &poll_signal);
 
-    // Initialize the timer for periodic data requests.
-    k_timer_init(&request_timer, timer_handler, NULL);
-
-    // Initialize the timer for periodic data requests and the delayable work item for the ACK
+    // Initialize the timer for periodic data requests, delayable work item for the emergency ack.
     k_timer_init(&request_timer, timer_handler, NULL);
     k_work_init_delayable(&emergency_ack_work, emergency_ack_handler);
 
@@ -168,6 +187,13 @@ void logging_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_
 {
     // Toggle the logging state.
     base_station_event_t evt = LOGGING_PRESSED;
+    k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+}
+
+void sens_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+    // Cycle through sensitivity levels on each press.
+    base_station_event_t evt = SENS_PRESSED;
     k_msgq_put(&event_queue, &evt, K_NO_WAIT);
 }
 
@@ -212,17 +238,15 @@ void alert_handler(base_station_t *bs, bool state_change)
     // TODO: Turn on LEDs based on which anomalies are detected.
 }
 
-// ============================ base_station.c ============================
-
-void request_data()
+void send_config(base_station_t *bs)
 {
-    packet_t *packet = build_packet(REQUEST, NULL, 0);
-
+    uint8_t config_data[1] = { bs->sensitivity };
+    packet_t *packet = build_packet(CONFIG, config_data, sizeof(config_data));
     if (packet)
     {
-        if (bs.logging)
+        if (bs->logging)
         {
-            print_packet("BASE STATION - request_data", packet);
+            printk("[BS::DEBUG] Sending config packet with sensitivity: %s\n", sensitivity_to_str(bs->sensitivity));
         }
 
         send_packet(uart_dev, packet);
@@ -230,10 +254,32 @@ void request_data()
     }
     else
     {
-        printk("BASE STATION - NOTHING IS BEING SENT!\n");
+        if (bs->logging)
+        {
+            printk("[BS::ERROR] Failed to build config packet!\n");
+        }
     }
+}
 
-    k_sleep(K_MSEC(1000));
+void request_data()
+{
+    packet_t *packet = build_packet(REQUEST, NULL, 0);
+    if (packet)
+    {
+        if (bs.logging)
+        {
+            print_packet("BASE STATION - request_data", packet);
+        }
+        send_packet(uart_dev, packet);
+        destroy_packet(packet);
+    }
+    else
+    {
+        if (bs.logging)
+        {
+            printk("[BS::ERROR] Packet build failed!\n");
+        }
+    }
 }
 
 void normal_handler(base_station_t *bs, bool state_change)
@@ -241,29 +287,36 @@ void normal_handler(base_station_t *bs, bool state_change)
     toggle_timer(state_change, true);
     turn_off_leds();
 
-    const struct device *sn_dev = device_get_binding("SN_sensor");
-    // printk("[BS] sn_dev = %p\n", sn_dev);
-    if (!device_is_ready(sn_dev))
+    if (sensor_sample_fetch(bs->sn_dev) != 0 && bs->curr_state != NORMAL)
     {
-        printk("[BS] sensor_node device not ready\n");
-        return;
-    }
-
-    if (sensor_sample_fetch(sn_dev) != 0 && bs->curr_state != NORMAL)
-    {
-        printk("[BS] fetch failed not in Normal\n");
+        printk("[ERROR] BS fetch failed: not in normal state\n");
         return;
     }
 
     struct sensor_value dist, force, accel_x, accel_y, accel_z;
-    sensor_channel_get(sn_dev, SENSOR_CHAN_DISTANCE, &dist);
-    sensor_channel_get(sn_dev, SENSOR_CHAN_FORCE_N, &force);
-    sensor_channel_get(sn_dev, SENSOR_CHAN_ACCEL_X, &accel_x);
-    sensor_channel_get(sn_dev, SENSOR_CHAN_ACCEL_Y, &accel_y);
-    sensor_channel_get(sn_dev, SENSOR_CHAN_ACCEL_Z, &accel_z);
+    sensor_channel_get(bs->sn_dev, SENSOR_CHAN_DISTANCE, &dist);
+    sensor_channel_get(bs->sn_dev, SENSOR_CHAN_FORCE_N, &force);
+    sensor_channel_get(bs->sn_dev, SENSOR_CHAN_ACCEL_X, &accel_x);
+    sensor_channel_get(bs->sn_dev, SENSOR_CHAN_ACCEL_Y, &accel_y);
+    sensor_channel_get(bs->sn_dev, SENSOR_CHAN_ACCEL_Z, &accel_z);
 
-    printk("[BS normal_handler()] dist=%d force=%d accel=(%d, %d, %d)\n",
-           dist.val1, force.val1, accel_x.val1, accel_y.val1, accel_z.val1);
+    update_sensor_values(&bs->sensor_readings, &dist, &force, &accel_x, &accel_y, &accel_z);
+
+    if(bs->logging)
+    {   
+        sensor_reading_t *reading = &bs->sensor_readings;
+        printk("[BS::DEBUG] dist=%d force=%d accel=(%d, %d, %d)\n",
+            reading->dist, reading->force, reading->accel_x, reading->accel_y, reading->accel_z);
+    }
+}
+
+void update_sensor_values(sensor_reading_t *readings, struct sensor_value *dist, struct sensor_value *force, struct sensor_value *accel_x, struct sensor_value *accel_y, struct sensor_value *accel_z)
+{
+    readings->dist = (int32_t)dist->val1;
+    readings->force = (int32_t)force->val1;
+    readings->accel_x = (int32_t)accel_x->val1;
+    readings->accel_y = (int32_t)accel_y->val1;
+    readings->accel_z = (int32_t)accel_z->val1;
 }
 
 void turn_off_leds()
@@ -297,37 +350,30 @@ void worker_task()
         if (events[0].state == K_POLL_STATE_SIGNALED)
         {
 
-            // if (bs.logging)
-            // {
-            //     printk("[DEBUG] Received work signal!\n");
-            // }
-
             // Check result & reset for the next signal.
             k_poll_signal_check(&poll_signal, &signaled, &result);
             k_poll_signal_reset(&poll_signal);
-
-            events[0].state = K_POLL_STATE_NOT_READY;
 
             state_change = (result == STATE_SIGNAL);
 
             switch (bs.curr_state)
             {
-            case ALERT:
-                alert_handler(&bs, state_change);
-                break;
+                case ALERT:
+                    alert_handler(&bs, state_change);
+                    break;
 
-            case BOOT:
-                boot_handler(&bs, state_change);
-                break;
+                case BOOT:
+                    boot_handler(&bs, state_change);
+                    break;
 
-            case ERROR:
-                error_handler(&bs, state_change);
-                break;
+                case ERROR:
+                    error_handler(&bs, state_change);
+                    break;
 
-            // Default to normal case.
-            default:
-                normal_handler(&bs, state_change);
-                break;
+                // Default to normal case.
+                default:
+                    normal_handler(&bs, state_change);
+                    break;
             }
         }
     }
@@ -385,88 +431,87 @@ base_station_event_t get_next_state(base_station_state_t curr_state, base_statio
     return curr_state;
 }
 
-static bool in_emergency = false;
 
-const char *packet_type_str(uint8_t type)
+const char *packet_type_to_str(uint8_t type)
 {
     switch (type)
     {
-    case REQUEST: return "REQUEST";
-    case RESPONSE: return "RESPONSE";
-    case EMERGENCY: return "EMERGENCY";
-    case EMERGENCY_ACK: return "EMERGENCY_ACK";
-    case READY: return "READY";
-    default: return "UNKNOWN";
+        case REQUEST: return "REQUEST";
+        case RESPONSE: return "RESPONSE";
+        case EMERGENCY: return "EMERGENCY";
+        case EMERGENCY_ACK: return "EMERGENCY_ACK";
+        case READY: return "READY";
+        default: return "UNKNOWN";
+    }
+}
+
+const char *sensitivity_to_str(uint8_t sensitivity)
+{
+    switch (sensitivity)
+    {
+        case LOW: return "LOW";
+        case MEDIUM: return "MEDIUM";
+        case HIGH: return "HIGH";
+        default: return "UNKNOWN";
     }
 }
 
 
-
 void process_packet(packet_t *packet)
 {
-    if (in_emergency && packet->type != READY)
+    if (bs.emergency && packet->type != READY)
     {
-        //send_response(EMERGENCY_ACK, NULL, 0);
-        printk("Already IN EMERGENCY PLEASE WAIT... TYPE: %s\n",
-               packet_type_str(packet->type));
+        printk("Already IN EMERGENCY PLEASE WAIT... TYPE: %s\n", packet_type_to_str(packet->type));
         return;
     }
 
     switch (packet->type)
     {
-    case RESPONSE:
-    {
-        // if (bs.logging)
-        // {
-        //     print_packet("BASE STATION RESPONSE", packet);
-        // }
+        case RESPONSE:
+        {
+            if (packet->data != NULL && packet->data_len == sizeof(int32_t) * 5)
+            {
+                int32_t *readings = (int32_t *)packet->data;
+                sensor_node_store_response(
+                    readings[4], /* dist mm    */
+                    readings[3], /* force mN   */
+                    readings[0], /* accel X mg */
+                    readings[1], /* accel Y mg */
+                    readings[2]  /* accel Z mg */
+                );
+            }
+            else
+            {
+                printk("[BS] RESPONSE payload missing or wrong size\n");
+            }
 
-        if (packet->data != NULL && packet->data_len == sizeof(int32_t) * 5)
+            break;
+        }
+        case EMERGENCY:
         {
-            int32_t *readings = (int32_t *)packet->data;
-            sensor_node_store_response(
-                readings[4], /* dist mm    */
-                readings[3], /* force mN   */
-                readings[0], /* accel X mg */
-                readings[1], /* accel Y mg */
-                readings[2]  /* accel Z mg */
-            );
-        //     printk("[BS] dist=%d mm  force=%d mN  accel=(%d, %d, %d) mg\n",
-        //            readings[4], readings[3], readings[0], readings[1], readings[2]);
-         }
-        else
-        {
-            printk("[BS] RESPONSE payload missing or wrong size\n");
+            print_packet("BASE STATION EMERGENCY", packet);
+
+            bs.emergency = true;
+            base_station_event_t evt = ANOMALY_DETECTED;
+            k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+
+            k_work_schedule(&emergency_ack_work, K_SECONDS(10)); 
+            break;
         }
 
-        break;
-    }
-case EMERGENCY:
-    {
-        print_packet("BASE STATION EMERGENCY", packet);
+        case READY:
+        {
+            bs.emergency = false;
+            base_station_event_t evt = ANOMALY_CLEARED;
+            k_msgq_put(&event_queue, &evt, K_NO_WAIT);
+            break;
+        }
 
-        in_emergency = true;
-        base_station_event_t evt = ANOMALY_DETECTED;
-        k_msgq_put(&event_queue, &evt, K_NO_WAIT);
-
-        k_work_schedule(&emergency_ack_work, K_SECONDS(10)); 
-        break;
-    }
-
-    case READY:
-    {
-        in_emergency = false;
-        base_station_event_t evt = ANOMALY_CLEARED;
-        k_msgq_put(&event_queue, &evt, K_NO_WAIT);
-        break;
-    }
-
-    default:
-        print_packet("BASE STATION DEFAULT", packet);
-        break;
-    }
+        default:
+            print_packet("BASE STATION DEFAULT", packet);
+            break;
+        }
 }
-
 
 //uart_rx_task: frames bytes - complete packetS
 void uart_rx_task(void)
@@ -549,15 +594,17 @@ void uart_rx_task(void)
     }
 }
 
+/**
+ * @brief Dequeues complete packets and processes them.
+ */
 void packet_handler_task(void)
 {
     packet_t *pkt;
 
-    while (true) {
-        if (k_msgq_get(&packet_queue, &pkt, K_FOREVER) == 0) {
-            // if (bs.logging) {
-            //     print_packet("BASE STATION", pkt);
-            // }
+    while (true)
+    {
+        if (k_msgq_get(&packet_queue, &pkt, K_FOREVER) == 0) 
+        {
             process_packet(pkt);
             destroy_packet(pkt);
         }
@@ -584,6 +631,14 @@ void fsm_task()
                 continue;
             }
 
+            if (ev == SENS_PRESSED)
+            {
+                // Cycle through sensitivity levels and send config packet, without changing the current state.
+                bs.sensitivity = (bs.sensitivity + 1) % SENSITIVITY_LEVELS;
+                send_config(&bs);
+                continue;
+            }
+
             // Advance state based on the event.
             bs.curr_state = get_next_state(bs.curr_state, ev);
             k_poll_signal_raise(&poll_signal, STATE_SIGNAL);
@@ -600,6 +655,8 @@ static const char *event_str(base_station_event_t ev)
         return "Reset Pressed";
     case LOGGING_PRESSED:
         return "Logging Pressed";
+    case SENS_PRESSED:
+        return "Sensitivity Pressed";
     case BOOT_COMPLETE:
         return "Boot Complete";
     case ANOMALY_DETECTED:

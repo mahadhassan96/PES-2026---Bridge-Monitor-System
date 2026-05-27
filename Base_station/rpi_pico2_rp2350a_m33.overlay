@@ -41,6 +41,10 @@
             gpios = <&gpio0 21 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
             label = "USR_BTN_1";
         };
+        button2: button_2 {
+            gpios = <&gpio0 22 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+            label = "USR_BTN_2";
+        };
     };
 
     leds {
@@ -64,6 +68,7 @@
     aliases {
         button0 = &button0;
         button1 = &button1;
+        button2 = &button2;
         led0 = &led0;
         led1 = &led1;
         led2 = &led2;

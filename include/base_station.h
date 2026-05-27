@@ -5,6 +5,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/drivers/sensor.h>
 
 #include <stdio.h>
 #include <stdint.h>
@@ -23,6 +24,9 @@
 #define WORKER_PRIO 8
 #define HANDLER_PRIO  6
 
+#define SN_ALIAS "SN_sensor"
+#define SENSITIVITY_LEVELS 3
+
 typedef enum
 {
     NORMAL,
@@ -35,6 +39,7 @@ typedef enum
 {
     RESET_PRESSED,
     LOGGING_PRESSED,
+    SENS_PRESSED,
     BOOT_COMPLETE,
     ANOMALY_DETECTED,
     ANOMALY_CLEARED,
@@ -51,8 +56,11 @@ typedef struct
     sensor_reading_t sensor_readings;
     sensor_states_t sensor_states;
     base_station_state_t curr_state;
+    const struct device *sn_dev;
     bool logging;
     bool hw_init;
+    bool emergency;
+    uint8_t sensitivity;
 } base_station_t;
 
 void init(base_station_t* bs);
@@ -67,16 +75,18 @@ void error_handler(base_station_t *bs, bool state_change);
 
 void print_data();
 void request_data();
-void sensor_handshake();
-void init_sensors();
+void send_config(base_station_t *bs);
 
 void reset_system_cb();
 void update_logging_cb();
 void alert_cb();
 void get_fresh_data_cb();
 
+void update_sensor_values(sensor_reading_t *readings, struct sensor_value *dist, struct sensor_value *force, struct sensor_value *accel_x, struct sensor_value *accel_y, struct sensor_value *accel_z);
+
 void reset_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 void logging_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
+void sens_btn_isr(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 void init_btn(const struct gpio_dt_spec *spec, gpio_callback_handler_t callback, struct gpio_callback *callback_data);
 
 void timer_handler(struct k_timer *t);
@@ -89,6 +99,7 @@ void uart_read_task();
 
 void log_event(base_station_t* bs, base_station_event_t ev);
 void log_state(base_station_t* bs);
+const char *sensitivity_to_str(uint8_t sensitivity);
 
 void process_packet();
 
