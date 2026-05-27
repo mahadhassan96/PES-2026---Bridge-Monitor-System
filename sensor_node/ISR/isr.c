@@ -15,7 +15,7 @@ static void tof_gpio_isr(const struct device *dev, struct gpio_callback *cb, uin
 static void tof_work_handler(struct k_work *work)
 {
     uint16_t distance = vl53l1x_read(tof_dev);
-    printk("interrupt mode detected: %u mm\n", distance);
+    printk("interrupt mode detected DISTANCE SENSOR: %u mm\n", distance);
     sensor_emergency_isr();
 }
 
