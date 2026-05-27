@@ -185,7 +185,7 @@ static int adxl_313_init(const struct device *dev){
     uint8_t data_format = 0xB;
     uint8_t power_ctl = 0x08;
     uint8_t int_enable = 0x10;
-    uint8_t thresh_act = 0x80;
+    uint8_t thresh_act = 0x50;
     uint8_t fifo_ctl = 0;
     uint8_t buffer[6];
     uint8_t status;

@@ -177,8 +177,7 @@ void print_packet(const char *tag, packet_t *packet)
         [RESPONSE] = "RESPONSE",
         [EMERGENCY] = "EMERGENCY",
         [EMERGENCY_ACK] = "EMERGENCY_ACK",
-        [CONFIG] = "CONFIG",
-        [CONFIG_ACK] = "CONFIG_ACK"};
+    };
     if (packet == NULL)
     {
         printk("\n[%s] ERROR: NULL packet\n", tag);

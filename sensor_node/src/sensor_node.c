@@ -33,7 +33,6 @@ sensor_node_t sn;
 
 void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
 {
-    printk("MOTION DETECTED - ACTIVATING EMERGENCY");
     sensor_emergency_isr();
 }
 
@@ -188,15 +187,15 @@ void process_packet(packet_t *packet)
         uint8_t sensitivity = (uint8_t)packet->data[0];
         struct sensor_value raw_sensitivity;
         if(sensitivity == LOW){
-            raw_sensitivity.val1 = 0x50;
+            raw_sensitivity.val1 = 0x20;
             sensor_attr_set(acc_dev, SENSOR_CHAN_ACCEL_XYZ, (enum sensor_attribute)SENSOR_ATTR_ADXL313_RAW_THRESH, &raw_sensitivity);
         }
         else if(sensitivity == MEDIUM){
-            raw_sensitivity.val1 = 0xF0;
+            raw_sensitivity.val1 = 0x50;
             sensor_attr_set(acc_dev, SENSOR_CHAN_ACCEL_XYZ, (enum sensor_attribute)SENSOR_ATTR_ADXL313_RAW_THRESH, &raw_sensitivity);
         }
         else if(sensitivity == HIGH){
-            raw_sensitivity.val1 = 0xFF;
+            raw_sensitivity.val1 = 0x80;
             sensor_attr_set(acc_dev, SENSOR_CHAN_ACCEL_XYZ, (enum sensor_attribute)SENSOR_ATTR_ADXL313_RAW_THRESH, &raw_sensitivity);
         }
     }
@@ -206,17 +205,17 @@ void process_packet(packet_t *packet)
     }
 }
 
-// sensor_reading_t read_sensor_data()
-// {
-//     sensor_reading_t reading;
+sensor_reading_t read_sensor_data()
+{
+    sensor_reading_t reading;
 
-//     reading.timestamp = k_uptime_get();
-//     reading.type = REQUESTED;
-//     reading.dist = 0.0f;
-//     reading.force = 0.0f;
+    reading.timestamp = k_uptime_get();
+    reading.type = REQUESTED;
+    reading.dist = 0.0f;
+    reading.force = 0.0f;
 
-//     return reading;
-// }
+    return reading;
+}
 
 void worker_task()
 {
