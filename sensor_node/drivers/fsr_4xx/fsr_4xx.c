@@ -15,38 +15,6 @@
 
 LOG_MODULE_REGISTER(FSR_4XX, CONFIG_SENSOR_LOG_LEVEL);
 
-typedef struct FvR
-{
-    uint32_t resistance;
-    uint16_t force;
-} FvR;
-
-static const FvR fvr[10] = {
-	{250, 10000},{300, 7000},{450, 4000},{750, 2000},{1200, 1000},
-	{2000, 500},{3500, 250},{6000, 100},{10000, 50},{30000, 20}
-};
-
-static int32_t find_force(int32_t resistance){
-	int max = 9;
-	int min = 0;
-	int counter = 0;
-	int mid;
-	while(min <= max){
-		mid = min + (max - min) / 2;
-		if(resistance < fvr[mid].resistance){
-			max = mid - 1;
-		}
-		if(resistance > fvr[mid].resistance){
-			min = mid + 1;
-		}
-		if((resistance == fvr[mid].resistance) || (counter >= 10)){
-			return mid;
-		}
-		counter++;
-	}
-	return fvr[mid].force;
-}
-
 /**	-------------------- FSR 4XX API	-------------------------------			 */
 
 struct fsr_4xx_data {
