@@ -83,6 +83,7 @@ static int fsr_4xx_channel_get(const struct device *dev, enum sensor_channel cha
 	struct fsr_4xx_data *data = dev->data;
 	const struct fsr_4xx_config *cfg = dev->config;
 	int32_t mv = data->raw;
+	int32_t force = 0;
 
 	err = adc_raw_to_millivolts(adc_ref_internal(cfg->adc), cfg->ch_cfg.gain,
 				    cfg->adc_seq.resolution, &mv);
@@ -91,7 +92,13 @@ static int fsr_4xx_channel_get(const struct device *dev, enum sensor_channel cha
 	}
 
 	int32_t resistance = abs(((RM * mv) / SUPPLY_V) - RM);
-	int32_t force = find_force(resistance);
+	if(resistance > 10000){
+		force = 0;
+	}
+	else{
+		double force_d = (1 / (double)resistance) * 1e6;
+		force = (int32_t) force_d;//find_force(resistance);
+	}
     val->val1 = force;
     val->val2 = 0;
 
