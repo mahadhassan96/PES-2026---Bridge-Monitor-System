@@ -1,0 +1,25 @@
+sudo picocom -b 115200 /dev/ttyACM0
+
+source ~/zephyrproject/.venv/bin/activate
+
+ls /dev/ttyACM*
+
+west build -p always   -b rpi_pico2/rp2350a/m33   -d /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender/build   /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/Sender
+
+
+west build -p always \
+  -b rpi_pico2/rp2350a/m33 \
+  -d /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/PES-2026---Bridge-Monitor-System/sensor_node/build \
+  /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/PES-2026---Bridge-Monitor-System/sensor_node
+
+west build -p always \
+  -b rpi_pico2/rp2350a/m33 \
+  -d /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/PES-2026---Bridge-Monitor-System/base_station/build \
+  /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/PES-2026---Bridge-Monitor-System/base_station
+
+
+
+west build -p always \
+  -b rpi_pico2/rp2350a/m33  \
+  -d /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/PES-2026---Bridge-Monitor-System/testing/out/ \
+  /home/amine/VICTUS/Uppsala/Courses/PES_PROJECT/PES-2026---Bridge-Monitor-System/testing/base_station

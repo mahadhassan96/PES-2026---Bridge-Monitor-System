@@ -218,7 +218,7 @@ void print_packet(const char* src_tag, const char *packet_type_tag, packet_t *pa
                "  -> Accel X: %d mg\n"
                "  -> Accel Y: %d mg\n"
                "  -> Accel Z: %d mg\n"
-               "  -> FSR    : %d mN\n"
+               "  -> FSR    : %d uN\n"
                "  -> DISTANCE: %d mm\n",
                readings[0], readings[1], readings[2], readings[3], readings[4]);
     }

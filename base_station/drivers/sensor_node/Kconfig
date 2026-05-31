@@ -1,0 +1,6 @@
+config SENSOR_NODE
+  bool "Custom SENSOR_NODE driver"
+  default y
+  depends on UART
+  help
+    Enable support for the custom SENSOR_NODE driver.
